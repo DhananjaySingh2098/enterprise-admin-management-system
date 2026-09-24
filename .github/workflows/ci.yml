@@ -162,6 +162,13 @@ jobs:
       - name: Install Chromium
         working-directory: frontend
         run: npx playwright install --with-deps chromium
+      # The runner ships a minimal font set, so Chromium falls back to a wider face than any real device (or the
+      # official Playwright image) uses and layout assertions drift by a few pixels. Pin a standard set instead.
+      - name: Install standard fonts (deterministic text metrics)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-liberation fonts-noto-core
+          fc-cache -f >/dev/null && fc-list | wc -l
       - name: Playwright (fresh schema, least-privilege users, production build with real CSP)
         working-directory: frontend
         run: npm run e2e
@@ -186,8 +193,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+      - name: Compose configuration (ADMIN_EMAIL is required; compose interpolates it at build time too)
+        run: |
+          cp .env.production.example .env.production
+          {
+            echo "APP_VERSION=ci"
+            echo "SECRETS_DIR=${SECRETS_DIR}"
+            echo "HTTP_PORT=8088"
+            echo "REFRESH_COOKIE_SECURE=false"
+          } >> .env.production
       - name: Build images (no secrets at build time)
-        run: docker compose -f docker-compose.prod.yml build --pull
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production build --pull
       - name: Image review (non-root user, size, no build tooling or secrets)
         run: |
           set -euo pipefail
@@ -209,15 +225,7 @@ jobs:
       - name: Generate throwaway secrets
         run: scripts/generate-secrets.sh
       - name: Start the production stack
-        run: |
-          cp .env.production.example .env.production
-          {
-            echo "APP_VERSION=ci"
-            echo "SECRETS_DIR=${SECRETS_DIR}"
-            echo "HTTP_PORT=8088"
-            echo "REFRESH_COOKIE_SECURE=false"
-          } >> .env.production
-          docker compose -f docker-compose.prod.yml --env-file .env.production up -d --wait --wait-timeout 240
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production up -d --wait --wait-timeout 240
       - name: Smoke test through nginx
         env:
           BASE_URL: http://127.0.0.1:8088
