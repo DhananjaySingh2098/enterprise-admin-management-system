@@ -1,9 +1,21 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ThemeService } from '../../core/theme/theme.service';
+import { CHANGED_AT_KEY, DENSITY_KEY, MODE_KEY, PRESET_KEY, ThemeService } from '../../core/theme/theme.service';
 import { ThemeMenu } from './theme-menu';
 
 describe('ThemeMenu', () => {
+  // Appearance is remembered per browser, and spec files can share that storage depending on how the runner
+  // isolates them. Start from the documented defaults so this spec tests the menu, not what ran before it.
+  beforeEach(() => {
+    for (const key of [MODE_KEY, PRESET_KEY, DENSITY_KEY, CHANGED_AT_KEY]) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        /* storage can be unavailable; the service then falls back to its defaults anyway */
+      }
+    }
+  });
+
   it('is an accessible popover with appearance and preset radio groups', async () => {
     const fixture = TestBed.createComponent(ThemeMenu);
     await fixture.whenStable();
