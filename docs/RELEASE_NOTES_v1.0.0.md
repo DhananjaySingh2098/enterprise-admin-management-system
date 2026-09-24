@@ -1,28 +1,115 @@
-# Enterprise Admin Management System v1.0.0 — draft release notes
-
-> **Draft.** Nothing has been committed, tagged or published. Publish only after the release is approved.
+# Enterprise Admin Management System v1.0.0
 
 The first complete release. A secure, role-based administration platform — users, employees, departments, an
 analytics dashboard, an append-only audit trail, in-app notifications and settings — delivered as a hardened
 container stack with continuous integration.
 
-## Highlights
+Built with Spring Boot 4.1 on Java 21, Angular 22, MySQL 8.4, Flyway, nginx and Docker.
 
-- **Authentication built for real use.** Short-lived JWT access tokens kept in memory, rotating refresh tokens
-  stored only as hashes in an `HttpOnly`, `SameSite=Strict` cookie, family reuse detection, and recovery from a
-  refresh whose response was lost mid-reload. Repeated failures trigger bounded, temporary lockouts.
-- **Roles that hold at every layer.** `ADMIN`, `MANAGER` and `USER` enforced deny-by-default in the filter chain and
-  again with `@PreAuthorize`, covered by a full endpoint × role matrix test.
-- **An audit trail you can trust.** Every sign-in, sign-out, failure and record change is written in the same
-  transaction as the change, redacted twice, and stored in a table the application itself cannot update or delete —
-  the database denies it.
-- **A dashboard with no invented numbers.** Every KPI, chart and trend is a live database aggregate.
-- **A premium interface.** System/Light/Dark across four presets, two densities, per-user preferences synced to the
-  account, motion that respects reduced-motion settings, and no flash of the wrong theme on load.
-- **Hardened by default.** A strict CSP with no inline scripts or styles, shared-store rate limiting, least-privilege
-  database accounts, non-root containers, and a backend and database that are unreachable from the host.
+## Authentication and sessions
 
-## Running it
+- Sign-in, refresh, sign-out and `GET /api/auth/me`. Access tokens are JWTs (HS256, 15 minutes, minimal claims) kept
+  only in browser memory.
+- Refresh tokens are 256-bit values stored only as SHA-256 hashes, rotated on every use with family reuse detection,
+  valid for 7 days inside a 30-day absolute session, and delivered in an `HttpOnly`, `SameSite=Strict` cookie scoped
+  to `/api/auth`.
+- **Refresh race protection:** when a refresh response is lost mid-navigation, the rotation is recovered instead of
+  signing the user out (`replaced_by_id`, `SUPERSEDED`), with one bounded restore retry.
+- Repeated failed sign-ins trigger bounded, exponentially growing lockouts per account and per IP.
+- BCrypt (cost 12) hashing, a 12-character to 72-byte password policy, and a password change that ends every other
+  session.
+
+## Roles and access control
+
+- `ADMIN`, `MANAGER` and `USER`, enforced deny-by-default in the security filter chain and again with
+  `@PreAuthorize`, so the API authorizes every request independently of what the UI shows.
+- Covered by a full endpoint × role matrix test; unauthorised requests are refused before request parsing.
+
+## Administration
+
+- **Users (ADMIN):** paged, searched, filtered and sorted lists; create, edit, replace roles, enable and disable
+  (disabling revokes sessions). Safeguards prevent self-disable, self-demotion and removing the last active ADMIN.
+- **Employees:** full records with server-side search, filters, allowlisted sorting, paging and optimistic locking
+  (`409 STALE_VERSION`). Writes are ADMIN/MANAGER; status changes are ADMIN.
+- **Departments:** managed by ADMIN with real headcounts; deactivated, never deleted.
+- **Profile:** every signed-in user can update their own details and change their password.
+
+## Dashboard and analytics
+
+- Read-only aggregates for ADMIN and MANAGER: summary totals, headcount by department, status breakdown, a
+  continuous hiring trend (1–24 months), recent hires, and ADMIN-only account analytics. USER receives a personal
+  workspace instead.
+- Every figure is computed live from real rows by database aggregation — nothing is estimated, extrapolated or
+  invented.
+
+## Interface
+
+- **Themes:** System/Light/Dark across five presets — Aurora, Obsidian, Pearl, Midnight and Emerald — plus
+  Comfortable and Compact densities, applied before first paint so there is no flash of the wrong theme.
+- **Motion and depth:** staggered entrance reveals, chart draw animations, KPI count-ups and a 3D tilt with pointer
+  spotlight on KPI cards (fine pointers only). All of it honours `prefers-reduced-motion`.
+- Role-aware application shell with a docked sidebar on desktop and an off-canvas drawer on small screens.
+
+## Audit, notifications and settings
+
+- **Audit logs (ADMIN):** an append-only trail of sign-ins, failures, sign-outs, token-reuse revocations and every
+  user, employee, department and settings change. Entries are written in the same transaction as the change and
+  redacted twice, and the application cannot update or delete them — the database denies it. Filters, search, date
+  range, allowlisted sorting and a detail drawer.
+- **Notifications:** generated by real account and record changes, with a header bell, unread count and a timeline
+  page. Nobody can read or modify anyone else's.
+- **Preferences:** appearance (mode, preset, density) per user, synced to the account and reconciled by timestamp.
+- **Organization settings (ADMIN):** organization name and the dashboard's recent-hire window (1–365 days),
+  optimistically locked.
+- Every response carries `X-Request-Id`, which also appears in logs, audit rows and error bodies.
+
+## Security hardening
+
+- **Content-Security-Policy and headers:** the SPA is served with `script-src 'self'` plus the boot script's SHA-256
+  and `style-src 'self'` — no `unsafe-inline`, `unsafe-eval` or wildcards — along with `frame-ancestors 'none'`,
+  `no-referrer`, `nosniff`, Permissions-Policy and COOP. HSTS is sent only over genuine HTTPS. One source of truth
+  generates the development, nginx and test policies, and a check fails the build on any drift.
+- **Rate limiting:** per-IP, per-account and per-user policies in a MySQL-backed store shared by every instance.
+  Reads are never limited; refusals are a safe `429` with `Retry-After` and no information disclosure.
+- **Least-privilege database accounts:** separate migration and runtime accounts, per-table grants re-applied after
+  every migration, and a startup probe that refuses to start if the runtime account can modify audit rows.
+- Unknown JSON fields are rejected (mass-assignment defence), and error bodies never expose internals.
+
+## Persistence
+
+- MySQL 8.4 with a Flyway-owned schema (V1–V6); Hibernate only validates it and never alters tables.
+- In production, migrations run in their own one-shot container under the migration account, before the application
+  starts; the long-running backend holds no DDL privileges.
+
+## Deployment
+
+- **Docker production stack:** frontend, backend, a one-shot migration job and MySQL. The backend and database sit on
+  an internal-only network with no published ports; only the frontend is reachable, bound to `127.0.0.1` by default.
+  Both runtime images run as non-root with no build tooling, sources or source maps, and nginx runs with a read-only
+  root filesystem.
+- **nginx** serves the SPA with the approved headers and CSP, SPA fallback, gzip, immutable caching for hashed assets
+  and `no-cache` for `index.html`, and reverse-proxies `/api` with forwarded headers it sets itself — so a spoofed
+  client address never reaches the audit trail. When the backend is down it answers with a generic JSON 503.
+- **Secrets are files** (Docker secrets read through Spring's `configtree`): never environment variables, build
+  arguments or image layers.
+- Verified installs: clean database, upgrade of an existing database from schema V4 and V5 with real data, and a
+  backup restored into a fresh stack.
+
+## Quality gates
+
+- **GitHub Actions CI** on pull requests and pushes to `main`: backend tests with SpotBugs/FindSecBugs, OSV and
+  `npm audit` dependency scans, frontend tests, build and CSP checks on Node 22 and 24, a redacted gitleaks secret
+  scan, the Playwright suite, and a container job that builds both images, reviews them and smoke-tests the running
+  stack.
+- **Test counts:** 200 backend tests (unit, web-slice and Testcontainers against real MySQL), 182 Angular unit
+  tests, and 26 Playwright end-to-end tests run both on an isolated stack and through the production nginx stack.
+- **Accessibility:** automated axe-core checks on every page in light and dark with no serious or critical
+  violations, plus keyboard tests for the skip link, visible focus, dialog focus trap and focus return. Manual
+  screen-reader testing has not been performed.
+- **Responsive:** no horizontal overflow on any page at 1440, 1280, 1024, 768 and 390 px, with popovers and drawers
+  verified on a phone viewport.
+
+## Getting started
 
 ```bash
 scripts/generate-secrets.sh
@@ -30,45 +117,17 @@ cp .env.production.example .env.production        # set ADMIN_EMAIL
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build --wait
 ```
 
-Full instructions: [docs/DEPLOYMENT.md](DEPLOYMENT.md). Operations: [docs/RUNBOOK.md](RUNBOOK.md).
-
 Terminate TLS in front of the stack and set `NGINX_TRUST_FORWARDED_PROTO=on` so HSTS and `Secure` cookies engage.
-
-## Upgrading
-
-This is the first release, so there is nothing to upgrade from. Future upgrades: back up, `build`, then
-`up -d --wait` — the one-shot migration job applies pending migrations before the backend starts. Upgrading an
-existing database has been tested from schema V4 and V5 with a copy of real data; all rows, accounts and history are
-preserved, and an existing administrator account is never modified.
-
-## Verification for this release
-
-| Gate | Result |
-|---|---|
-| Backend tests (unit, web-slice, Testcontainers MySQL) | 200 passed |
-| Angular unit tests | 182 passed |
-| Playwright E2E — isolated stack | 26 passed |
-| Playwright E2E — through the production stack | 26 passed |
-| SpotBugs + FindSecBugs | 0 findings |
-| OSV (139 Maven artifacts) | 0 vulnerabilities |
-| `npm audit` (production and all dependencies) | 0 vulnerabilities |
-| CSP consistency (source, dev server, nginx, build) | passed |
-| Smoke test through nginx (8 groups) | passed |
-| Clean install / upgrade / backup restore | passed |
-
-Accessibility is covered by automated axe-core checks in light and dark plus keyboard tests; **manual screen-reader
-testing has not been performed**.
+Full instructions are in [docs/DEPLOYMENT.md](DEPLOYMENT.md); day-2 operations are in [docs/RUNBOOK.md](RUNBOOK.md).
 
 ## Known limitations
 
-- No email delivery: notifications are in-app, and there is no self-service password reset (an ADMIN creates or
+- No email delivery: notifications are in-app only, and there is no self-service password reset (an ADMIN creates or
   resets accounts).
-- Single MySQL container in the bundled stack; use managed or replicated MySQL for high availability.
+- The bundled stack runs a single MySQL container; use managed or replicated MySQL for high availability.
 - The bundled database connection uses `sslMode=PREFERRED` on an internal network; external databases should use
   `sslMode=VERIFY_IDENTITY`.
-- Container images are built locally and not published to a registry.
+- Container images are built from source and are not published to a registry.
 - No cloud deployment, autoscaling or multi-tenancy.
 
-## Credits
-
-Built with Spring Boot 4.1 on Java 21, Angular 22, MySQL 8.4, Flyway, nginx and Docker.
+Full history: [CHANGELOG.md](../CHANGELOG.md).

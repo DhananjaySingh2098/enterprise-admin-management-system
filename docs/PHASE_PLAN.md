@@ -81,7 +81,7 @@ Each phase ends with a verified, working build and requires explicit approval be
   - department bars, a status donut and a hiring-trend line/area chart with a data table
   - recent hires, and an ADMIN system-access panel
   - onboarding empty states; USER sees the personal workspace
-- Theme system: System/Light/Dark × Aurora, Obsidian, Pearl and Midnight presets, with an accessible popover, local
+- Theme system: System/Light/Dark × Aurora, Obsidian, Pearl, Midnight and Emerald presets, with an accessible popover, local
   persistence and no-flash boot.
 - Motion: staggered entrances, chart reveals, and 3D tilt with a pointer spotlight on KPI cards (fine pointer only,
   honours reduced motion).

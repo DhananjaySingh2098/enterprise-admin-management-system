@@ -51,8 +51,8 @@ noted for traceability.
   or invented.
 - Dashboard with KPI cards, department bars, a status donut, a hiring-trend chart with its data table, recent hires,
   onboarding empty states, and a personal workspace for USER.
-- Theme system: System/Light/Dark across the Aurora, Obsidian, Pearl and Midnight presets, persisted locally and
-  applied before first paint.
+- Theme system: System/Light/Dark across the Aurora, Obsidian, Pearl, Midnight and Emerald presets, persisted
+  locally and applied before first paint.
 
 **Audit, notifications and settings (Phase 5)**
 

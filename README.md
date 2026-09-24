@@ -20,8 +20,8 @@ Available now:
 - A self-service profile, and a password change that signs out every other session
 - A management analytics dashboard (KPIs, department headcount, status mix, hiring trend, recent hires,
   system-access overview), computed live from the database
-- A premium responsive app shell: System/Light/Dark appearance, the Aurora, Obsidian, Pearl and Midnight presets,
-  and subtle 3D depth
+- A premium responsive app shell: System/Light/Dark appearance, the Aurora, Obsidian, Pearl, Midnight and Emerald
+  presets, two densities, and subtle 3D depth
 
 - An ADMIN-only append-only audit trail with filters, search and a detail drawer, plus in-app notifications
 - Per-user appearance preferences and ADMIN organization settings, synced to the account
