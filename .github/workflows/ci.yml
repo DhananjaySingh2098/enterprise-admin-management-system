@@ -1,0 +1,242 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: "21"
+  NODE_VERSION: "24"
+
+jobs:
+  backend:
+    name: Backend · tests + SpotBugs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      # Unit + Testcontainers (MySQL 8.4) integration tests, packaging, then SpotBugs/FindSecBugs (fails on findings).
+      - name: Test, package and static analysis
+        run: ./mvnw -B -ntp -Psecurity-scan clean verify
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: backend/target/surefire-reports/
+          retention-days: 7
+
+  dependency-scan:
+    name: Dependencies · OSV (Maven) + npm audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: OSV scan of every resolved Maven dependency
+        run: python3 scripts/security/osv-maven-scan.py
+      - name: npm audit (production dependencies, high or critical fails)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+      - name: npm audit (all dependencies, critical fails)
+        working-directory: frontend
+        run: npm audit --audit-level=critical
+
+  frontend:
+    name: Frontend · tests, build, CSP (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24"]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      # One CSP source of truth (security-headers.json) → dev server headers, nginx snippet, index.html hash.
+      - name: CSP / security-header consistency (source)
+        run: npm run check:csp
+      - name: Unit tests
+        run: npm run test:ci
+      - name: Production build
+        run: npx ng build --configuration production
+      - name: CSP check of the production build (no inline code, hashed assets, no source maps)
+        run: npm run check:csp
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The CLI is used directly (the gitleaks-action needs a licence for organisation repositories).
+      # --redact keeps any finding's value out of the log; .gitleaks.toml documents the allowlisted fixtures.
+      - name: gitleaks
+        env:
+          GITLEAKS_VERSION: "8.28.0"
+        run: |
+          curl -sSfL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks git --config .gitleaks.toml --redact --verbose --exit-code 1 .
+
+  e2e:
+    name: E2E · Playwright (isolated stack)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [backend, frontend]
+    env:
+      CI: "true"
+      MYSQL_PORT: "3307"
+      E2E_MYSQL_CONTAINER: enterprise-admin-mysql
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Generate a throwaway MySQL root password
+        run: |
+          pw="$(openssl rand -hex 24)"
+          echo "::add-mask::$pw"
+          echo "E2E_MYSQL_ROOT_PASSWORD=$pw" >> "$GITHUB_ENV"
+      - name: Start MySQL 8.4
+        run: |
+          docker run -d --name "$E2E_MYSQL_CONTAINER" -p "127.0.0.1:${MYSQL_PORT}:3306" \
+            -e MYSQL_ROOT_PASSWORD="$E2E_MYSQL_ROOT_PASSWORD" mysql:8.4
+          for _ in $(seq 1 60); do
+            docker exec -e MYSQL_PWD="$E2E_MYSQL_ROOT_PASSWORD" "$E2E_MYSQL_CONTAINER" \
+              mysqladmin ping -h 127.0.0.1 -u root --silent && exit 0
+            sleep 2
+          done
+          echo "MySQL did not become ready" && exit 1
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Playwright (fresh schema, least-privilege users, production build with real CSP)
+        working-directory: frontend
+        run: npm run e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/e2e-report/
+            frontend/e2e-results/
+          retention-days: 7
+
+  containers:
+    name: Containers · build, compose, smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [backend, frontend]
+    env:
+      APP_VERSION: ci
+      SECRETS_DIR: ${{ github.workspace }}/.ci-secrets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build images (no secrets at build time)
+        run: docker compose -f docker-compose.prod.yml build --pull
+      - name: Image review (non-root user, size, no build tooling or secrets)
+        run: |
+          set -euo pipefail
+          for image in enterprise-admin-backend:ci enterprise-admin-frontend:ci; do
+            user="$(docker image inspect -f '{{.Config.User}}' "$image")"
+            size="$(docker image inspect -f '{{.Size}}' "$image")"
+            echo "$image user=$user size=$((size / 1000000))MB"
+            case "$user" in ""|0|root|0:0|root:root) echo "::error::$image runs as root"; exit 1;; esac
+            if docker image inspect -f '{{json .Config.Env}}' "$image" | grep -qiE '(PASSWORD|SECRET|TOKEN)='; then
+              echo "::error::$image bakes a secret into its environment"; exit 1
+            fi
+          done
+          docker run --rm --entrypoint sh enterprise-admin-backend:ci -c \
+            'test ! -e /app/src && ! command -v mvn && ! command -v curl && ! command -v bash' \
+            || { echo "::error::backend image contains sources or build tooling"; exit 1; }
+          docker run --rm --entrypoint sh enterprise-admin-frontend:ci -c \
+            '! find /usr/share/nginx/html -name "*.map" | grep -q . && ! command -v node' \
+            || { echo "::error::frontend image contains source maps or Node"; exit 1; }
+      - name: Generate throwaway secrets
+        run: scripts/generate-secrets.sh
+      - name: Start the production stack
+        run: |
+          cp .env.production.example .env.production
+          {
+            echo "APP_VERSION=ci"
+            echo "SECRETS_DIR=${SECRETS_DIR}"
+            echo "HTTP_PORT=8088"
+            echo "REFRESH_COOKIE_SECURE=false"
+          } >> .env.production
+          docker compose -f docker-compose.prod.yml --env-file .env.production up -d --wait --wait-timeout 240
+      - name: Smoke test through nginx
+        env:
+          BASE_URL: http://127.0.0.1:8088
+          ADMIN_EMAIL: admin@example.com
+          ADMIN_PASSWORD_FILE: ${{ github.workspace }}/.ci-secrets/ADMIN_PASSWORD
+          EXPECT_SECURE_COOKIE: "false"
+        run: scripts/smoke-test.sh
+      - name: Container logs contain no secret values
+        if: always()
+        run: |
+          set -euo pipefail
+          docker compose -f docker-compose.prod.yml --env-file .env.production logs --no-color > stack.log 2>&1 || true
+          for f in "$SECRETS_DIR"/*; do
+            if grep -qF -- "$(cat "$f")" stack.log; then echo "::error::a secret value appears in container logs"; exit 1; fi
+          done
+          echo "no secret values in $(wc -l < stack.log) log lines"
+      - name: Show service status on failure
+        if: failure()
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production ps -a
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production down -v || true
