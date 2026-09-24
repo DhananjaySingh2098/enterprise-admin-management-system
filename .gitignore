@@ -1,0 +1,51 @@
+# ---- Secrets / local environment ----
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+!.env.production.example
+# Docker secret files (scripts/generate-secrets.sh) and database dumps/backups
+secrets/
+backups/
+*.sql.gz
+*.dump
+*.pem
+*.key
+*.p12
+*.jks
+
+# ---- Backend (Maven / Java) ----
+backend/target/
+target/
+!.mvn/wrapper/maven-wrapper.properties
+*.class
+hs_err_pid*
+replay_pid*
+
+# ---- Frontend (Node / Angular) ----
+node_modules/
+dist/
+.angular/
+out-tsc/
+coverage/
+# Playwright output
+frontend/e2e-results/
+frontend/e2e-report/
+test-results/
+playwright-report/
+.sass-cache/
+npm-debug.log*
+yarn-error.log*
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
+Thumbs.db

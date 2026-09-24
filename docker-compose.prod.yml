@@ -1,0 +1,130 @@
+# Enterprise Admin — production-style stack (see docs/DEPLOYMENT.md).
+#
+#   scripts/generate-secrets.sh                                   # once: ./secrets (git-ignored)
+#   cp .env.production.example .env.production                    # non-secret settings
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build --wait
+#
+# Browser → frontend (nginx: SPA + /api reverse proxy) → backend → mysql.
+# Only the frontend publishes a port; backend and MySQL live on an internal network without host ports.
+# Secrets are Docker secrets (files mounted at /run/secrets), never environment variables or image layers.
+# TLS: terminate HTTPS in front of this stack (load balancer / reverse proxy) or in nginx; see docs/DEPLOYMENT.md.
+
+name: enterprise-admin
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    # InnoDB needs time to flush on shutdown; the 10s default ends in SIGKILL (exit 137).
+    stop_grace_period: 60s
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-enterprise_admin}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/MYSQL_ROOT_PASSWORD
+      # Consumed by docker/mysql/initdb/10-provision-users.sh on the first start of an empty volume.
+      DB_MIGRATION_USER: ${DB_MIGRATION_USER:-ea_migrator}
+      DB_RUNTIME_USER: ${DB_RUNTIME_USER:-ea_app}
+    secrets: [MYSQL_ROOT_PASSWORD, FLYWAY_PASSWORD, DB_PASSWORD]
+    # Copy the provisioning hook into the init directory with mode 0644 so the entrypoint *sources* it (bind-mount
+    # file modes differ between hosts), then start MySQL exactly as the official image does.
+    entrypoint: ["sh", "-c", "install -m 0644 /opt/enterprise-admin/initdb/*.sh /docker-entrypoint-initdb.d/ && exec docker-entrypoint.sh mysqld"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/provision-users.sql:/opt/enterprise-admin/provision-users.sql:ro
+      - ./docker/mysql/initdb:/opt/enterprise-admin/initdb:ro
+    networks: [internal]
+    healthcheck:
+      # TCP ping of the real server (the temporary init server has networking disabled, so this only passes once
+      # initialization is complete). The password is read from the secret file, never passed as an argument.
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$(cat /run/secrets/MYSQL_ROOT_PASSWORD)\" mysqladmin ping -h 127.0.0.1 -u root --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  # One-shot: Flyway with the migration account + least-privilege runtime grants, then exits.
+  migrate:
+    image: enterprise-admin-backend:${APP_VERSION:-local}
+    build: ./backend
+    entrypoint: ["java", "-cp", "/app/app.jar", "com.enterprise.admin.migration.MigrationMain"]
+    environment:
+      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/enterprise_admin?sslMode=PREFERRED&serverTimezone=UTC}
+      FLYWAY_USER: ${DB_MIGRATION_USER:-ea_migrator}
+      DB_RUNTIME_USER: ${DB_RUNTIME_USER:-ea_app}
+      FLYWAY_TARGET: ${FLYWAY_TARGET:-}
+    secrets: [FLYWAY_PASSWORD]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks: [internal]
+    restart: "no"
+    healthcheck:
+      disable: true
+
+  backend:
+    image: enterprise-admin-backend:${APP_VERSION:-local}
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/enterprise_admin?sslMode=PREFERRED&serverTimezone=UTC}
+      DB_USERNAME: ${DB_RUNTIME_USER:-ea_app}
+      DB_RUNTIME_USER: ${DB_RUNTIME_USER:-ea_app}
+      # Migrations are applied by the migrate service; the backend holds no DDL credentials.
+      FLYWAY_ENABLED: "false"
+      DB_VERIFY_LEAST_PRIVILEGE: "true"
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL is required}
+      ADMIN_FIRST_NAME: ${ADMIN_FIRST_NAME:-System}
+      ADMIN_LAST_NAME: ${ADMIN_LAST_NAME:-Administrator}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      # nginx is the only client (internal network) and overwrites X-Forwarded-* headers.
+      FORWARD_HEADERS_STRATEGY: framework
+      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-true}
+      HSTS_ENABLED: ${HSTS_ENABLED:-true}
+      RATE_LIMIT_STORE: jdbc
+      JDK_JAVA_OPTIONS: ${JDK_JAVA_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
+    secrets: [DB_PASSWORD, JWT_SECRET, ADMIN_PASSWORD]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks: [internal]
+    stop_grace_period: 40s
+
+  frontend:
+    image: enterprise-admin-frontend:${APP_VERSION:-local}
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_UPSTREAM: backend:8080
+      # "on" only when a TLS-terminating proxy that sets X-Forwarded-Proto sits in front of nginx.
+      NGINX_TRUST_FORWARDED_PROTO: ${NGINX_TRUST_FORWARDED_PROTO:-off}
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8088}:8080"
+    networks: [internal, edge]
+    # Immutable root filesystem; nginx (uid 101) writes only its rendered config, cache and pid to tmpfs.
+    read_only: true
+    tmpfs:
+      - /tmp:uid=101,gid=101,mode=0755
+      - /var/cache/nginx:uid=101,gid=101,mode=0755
+      - /etc/nginx/conf.d:uid=101,gid=101,mode=0755
+
+networks:
+  # No outbound or host access for the backend and database.
+  internal:
+    internal: true
+  edge: {}
+
+volumes:
+  mysql-data:
+
+secrets:
+  MYSQL_ROOT_PASSWORD:
+    file: ${SECRETS_DIR:-./secrets}/MYSQL_ROOT_PASSWORD
+  FLYWAY_PASSWORD:
+    file: ${SECRETS_DIR:-./secrets}/FLYWAY_PASSWORD
+  DB_PASSWORD:
+    file: ${SECRETS_DIR:-./secrets}/DB_PASSWORD
+  JWT_SECRET:
+    file: ${SECRETS_DIR:-./secrets}/JWT_SECRET
+  ADMIN_PASSWORD:
+    file: ${SECRETS_DIR:-./secrets}/ADMIN_PASSWORD

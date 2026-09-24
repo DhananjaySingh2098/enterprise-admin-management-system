@@ -1,0 +1,14 @@
+# Test-only override for running the Playwright suite against the production-style stack (CI job "e2e-production"):
+#   docker compose -f docker-compose.prod.yml -f docker-compose.e2e.yml --env-file <env> up -d --build --wait
+# The whole suite signs in from one client IP, so only the per-IP login/refresh limits and the mutation limits are
+# raised; per-account failed-login limits keep their production values. Never use this file in production.
+services:
+  backend:
+    environment:
+      ADMIN_FIRST_NAME: E2E
+      ADMIN_LAST_NAME: Administrator
+      SPRING_APPLICATION_JSON: >-
+        {"app":{"security":{"rate-limit":{"policies":{
+        "login-ip":{"limit":2000,"window":"1m"},"refresh-ip":{"limit":2000,"window":"1m"},
+        "admin-mutation":{"limit":2000,"window":"1m"},"account-mutation":{"limit":2000,"window":"1m"},
+        "profile-update":{"limit":2000,"window":"1m"}}}}}}

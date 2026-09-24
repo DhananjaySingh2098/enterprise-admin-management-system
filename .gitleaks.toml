@@ -1,0 +1,14 @@
+# gitleaks configuration: the default rule set, plus narrowly scoped allowlists for known test fixtures.
+# Each entry names the file AND the exact fixture, so a real secret added to the same file is still reported.
+# Run locally:  docker run --rm -v "$PWD":/repo:ro zricethezav/gitleaks:v8.28.0 git /repo --config /repo/.gitleaks.toml --redact
+# (A `dir` scan also reads the git-ignored .env — that file is never committed.)
+
+title = "enterprise-admin gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Unit-test fixture password (not a credential of any system)"
+paths = ['''backend/src/test/java/com/enterprise/admin/service/InitialAdminInitializerTest\.java''']
+regexes = ['''Sufficiently-Long-Pass-1''']
