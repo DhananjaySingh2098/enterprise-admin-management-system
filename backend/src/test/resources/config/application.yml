@@ -1,0 +1,38 @@
+# Test-only overrides (classpath:config/ outranks classpath:application.yml). Makes tests hermetic: they never
+# depend on a developer's .env. The JWT key below is a public test fixture and is never used outside tests.
+spring:
+  datasource:
+    # Replaced by AbstractIntegrationTest (Testcontainers, least-privilege users); unused by web-slice tests.
+    url: jdbc:mysql://not-used-in-tests/none
+    username: test
+    password: test
+  jpa:
+    properties:
+      hibernate:
+        # Lets integration tests assert how many SQL statements an endpoint issues.
+        generate_statistics: true
+app:
+  cors:
+    allowed-origins: ""
+  security:
+    jwt:
+      secret: test-only-hs256-signing-key-not-a-real-secret-0123456789
+    password:
+      # Minimum BCrypt cost keeps the suite fast; production default is 12.
+      bcrypt-strength: 4
+    rate-limit:
+      # Web-slice tests have no database; integration tests switch back to the shared jdbc store.
+      store: memory
+      # Far above test traffic (every test logs in from 127.0.0.1); RateLimitIntegrationTest overrides these.
+      policies:
+        login-ip: { limit: 100000, window: 1m }
+        login-account-failure: { limit: 100000, window: 15m }
+        refresh-ip: { limit: 100000, window: 1m }
+        password-change: { limit: 100000, window: 15m }
+        profile-update: { limit: 100000, window: 1m }
+        admin-mutation: { limit: 100000, window: 1m }
+        account-mutation: { limit: 100000, window: 1m }
+  bootstrap:
+    admin:
+      email: ""
+      password: ""

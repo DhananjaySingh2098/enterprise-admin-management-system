@@ -1,0 +1,104 @@
+// Component styles that used to live in `styles:` blocks. They are global (scoped by the host element) so the
+// application injects no <style> tags at runtime and the SPA's CSP can use style-src 'self' without 'unsafe-inline'.
+
+// icon.ts
+app-icon {
+  & { display: inline-flex; flex: none; line-height: 0; }
+}
+
+// status-badge.ts
+app-status-badge {
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--app-space-2);
+    padding: var(--app-space-1) var(--app-space-3);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-pill);
+    background: var(--app-surface);
+    color: var(--app-text-muted);
+    font-size: var(--app-font-size-sm);
+    font-weight: 500;
+  }
+  .dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--app-text-muted);
+    transition: background-color var(--app-transition-normal);
+  }
+  [data-state='online'] .dot { background: var(--app-success); }
+  [data-state='offline'] .dot { background: var(--app-danger); }
+}
+
+// not-found.ts
+app-not-found {
+  .not-found {
+    max-width: 40rem;
+    margin-inline: auto;
+    text-align: center;
+  }
+  h1 { font-size: var(--app-font-size-2xl); }
+  p { color: var(--app-text-muted); }
+  a { color: var(--app-primary); }
+}
+
+// forbidden.ts
+app-forbidden {
+  .forbidden { max-width: 40rem; margin-inline: auto; text-align: center; }
+  h1 { font-size: var(--app-font-size-2xl); }
+  p { color: var(--app-text-muted); }
+  a { color: var(--app-primary); }
+}
+
+// home.ts
+app-home {
+  .welcome { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--app-space-4);
+    padding: var(--app-space-8); background: linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 7%, var(--app-surface)), var(--app-surface) 60%); }
+  .eyebrow { margin: 0 0 var(--app-space-2); color: var(--app-primary); font-size: var(--app-font-size-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  h1 { margin: 0; font-size: var(--app-font-size-3xl); line-height: var(--app-line-height-tight); letter-spacing: -0.02em; }
+  .welcome-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--app-space-3); margin: var(--app-space-3) 0 0; color: var(--app-text-muted); overflow-wrap: anywhere; }
+  .shortcuts { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--app-space-4); margin: var(--app-space-4) 0 0; padding: 0; list-style: none; }
+  .shortcut { display: flex; align-items: center; gap: var(--app-space-4); padding: var(--app-space-5); color: inherit; text-decoration: none; }
+  .shortcut-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: var(--app-radius-md);
+    background: color-mix(in srgb, var(--app-primary) 10%, transparent); color: var(--app-primary); }
+  .shortcut-text { display: grid; flex: 1; gap: 2px; }
+  .shortcut-text span { color: var(--app-text-muted); font-size: var(--app-font-size-sm); }
+}
+
+// department-form.ts
+app-department-form {
+  .textarea { min-height: 6rem; padding-block: var(--app-space-2); resize: vertical; }
+}
+
+// user-picker.ts
+app-user-picker {
+  .picker { position: relative; }
+  .picker-list {
+    position: absolute; z-index: 5; inset: calc(100% + 4px) 0 auto; margin: 0; padding: var(--app-space-1);
+    list-style: none; border: 1px solid var(--app-border); border-radius: var(--app-radius-md);
+    background: var(--app-surface-elevated); box-shadow: var(--app-shadow-md); max-height: 14rem; overflow-y: auto;
+  }
+  li { display: grid; padding: var(--app-space-2) var(--app-space-3); border-radius: var(--app-radius-sm); cursor: pointer; font-size: var(--app-font-size-sm); }
+  li span { color: var(--app-text-muted); font-size: var(--app-font-size-xs); }
+  li.is-active, li:hover { background: color-mix(in srgb, var(--app-primary) 10%, transparent); }
+  .picked-user {
+    display: flex; align-items: center; gap: var(--app-space-2); min-height: 2.75rem; padding: 0 var(--app-space-2) 0 var(--app-space-3);
+    border: 1px solid var(--app-border-strong); border-radius: var(--app-radius-sm); font-size: var(--app-font-size-sm);
+  }
+  .picked-user span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+// profile-page.ts
+app-profile-page {
+  .profile-grid { display: grid; grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); gap: var(--app-space-6); align-items: start; }
+  .profile-card { position: relative; display: grid; justify-items: center; align-content: start; gap: var(--app-space-2); padding: 3.5rem var(--app-space-6) var(--app-space-8); overflow: hidden; text-align: center; }
+  .profile-banner { position: absolute; inset: 0 0 auto; height: 5.5rem; background: radial-gradient(70% 120% at 85% 0%, color-mix(in srgb, var(--app-accent-2) 45%, transparent), transparent 70%), var(--app-gradient-primary); }
+  .profile-card app-avatar { position: relative; border-radius: 50%; box-shadow: 0 0 0 4px var(--app-surface), var(--app-shadow-md); }
+  .profile-card h2 { margin: var(--app-space-2) 0 0; font-size: var(--app-font-size-xl); letter-spacing: -0.01em; }
+  .profile-card p { margin: 0; color: var(--app-text-muted); font-size: var(--app-font-size-sm); overflow-wrap: anywhere; }
+  .profile-meta { display: flex; align-items: center; gap: var(--app-space-2); margin-top: var(--app-space-3) !important; font-size: var(--app-font-size-xs) !important; }
+  .stack { display: grid; gap: var(--app-space-6); }
+  .form-actions { display: flex; justify-content: flex-end; margin-top: var(--app-space-5); }
+  @media (max-width: 900px) { .profile-grid { grid-template-columns: minmax(0, 1fr); } }
+}

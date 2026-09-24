@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Enterprise Admin</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Enterprise Admin Management System">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Applies the saved appearance/preset/density before first paint (no light flash for dark-mode users).
+    // Mirrors ThemeService; keep keys and allowed values in sync.
+    (function () {
+      var root = document.documentElement;
+      try {
+        var mode = localStorage.getItem('enterprise-admin:theme');
+        var preset = localStorage.getItem('enterprise-admin:preset');
+        if (mode === 'light' || mode === 'dark') root.setAttribute('data-theme', mode);
+        if (localStorage.getItem('enterprise-admin:density') === 'compact') root.setAttribute('data-density', 'compact');
+        root.setAttribute('data-preset', /^(aurora|obsidian|pearl|midnight|emerald)$/.test(preset || '') ? preset : 'aurora');
+      } catch (e) {
+        root.setAttribute('data-preset', 'aurora');
+      }
+    })();
+  </script>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+  <app-root><div class="boot-splash" role="status" aria-label="Loading"></div></app-root>
+</body>
+</html>

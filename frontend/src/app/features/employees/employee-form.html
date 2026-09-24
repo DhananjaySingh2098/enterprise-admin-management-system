@@ -1,0 +1,108 @@
+<app-dialog variant="drawer" [open]="open()" [busy]="saving()" (closed)="closed.emit()" [heading]="heading()"
+            [description]="readOnly() ? 'Read-only view of this employee record.' : 'All fields marked * are required.'">
+  @if (conflict()) {
+    <div class="alert alert-warning" role="alert">
+      <span>This employee was updated by someone else. Reload the latest version before saving again.</span>
+      <button type="button" class="btn btn-secondary btn-sm alert-actions" (click)="reloadLatest()">Reload latest</button>
+    </div>
+  }
+  @if (formError(); as message) {
+    <div class="alert alert-danger" role="alert">{{ message }}</div>
+  }
+
+  <form id="employee-form" [formGroup]="form" (ngSubmit)="submit()" novalidate class="form-grid" [attr.aria-busy]="loading()">
+    <div class="field">
+      <label class="field-label" for="e-code">Employee code <span class="required-mark" aria-hidden="true">*</span></label>
+      <input id="e-code" class="input cell-mono" formControlName="employeeCode" autocomplete="off" spellcheck="false"
+             [attr.aria-invalid]="showError('employeeCode')" [attr.aria-describedby]="showError('employeeCode') ? 'e-code-err' : null" />
+      @if (showError('employeeCode')) {
+        <p class="field-error" id="e-code-err">{{ serverError('employeeCode') ?? '2–30 letters, digits or “-”.' }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-title">Job title <span class="required-mark" aria-hidden="true">*</span></label>
+      <input id="e-title" class="input" formControlName="jobTitle"
+             [attr.aria-invalid]="showError('jobTitle')" [attr.aria-describedby]="showError('jobTitle') ? 'e-title-err' : null" />
+      @if (showError('jobTitle')) { <p class="field-error" id="e-title-err">Job title is required.</p> }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-first">First name <span class="required-mark" aria-hidden="true">*</span></label>
+      <input id="e-first" class="input" formControlName="firstName"
+             [attr.aria-invalid]="showError('firstName')" [attr.aria-describedby]="showError('firstName') ? 'e-first-err' : null" />
+      @if (showError('firstName')) { <p class="field-error" id="e-first-err">First name is required.</p> }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-last">Last name <span class="required-mark" aria-hidden="true">*</span></label>
+      <input id="e-last" class="input" formControlName="lastName"
+             [attr.aria-invalid]="showError('lastName')" [attr.aria-describedby]="showError('lastName') ? 'e-last-err' : null" />
+      @if (showError('lastName')) { <p class="field-error" id="e-last-err">Last name is required.</p> }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-email">Work email <span class="required-mark" aria-hidden="true">*</span></label>
+      <input id="e-email" class="input" type="email" formControlName="email" spellcheck="false"
+             [attr.aria-invalid]="showError('email')" [attr.aria-describedby]="showError('email') ? 'e-email-err' : null" />
+      @if (showError('email')) {
+        <p class="field-error" id="e-email-err">{{ serverError('email') ?? 'Enter a valid email address.' }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-phone">Phone</label>
+      <input id="e-phone" class="input" type="tel" formControlName="phone" autocomplete="off"
+             [attr.aria-invalid]="showError('phone')" [attr.aria-describedby]="showError('phone') ? 'e-phone-err' : null" />
+      @if (showError('phone')) { <p class="field-error" id="e-phone-err">Enter a valid phone number.</p> }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-dept">Department <span class="required-mark" aria-hidden="true">*</span></label>
+      <select id="e-dept" class="select" formControlName="departmentId"
+              [attr.aria-invalid]="showError('departmentId')" [attr.aria-describedby]="showError('departmentId') ? 'e-dept-err' : null">
+        <option [ngValue]="null" disabled>Select a department</option>
+        @for (dept of departmentOptions(); track dept.id) {
+          <option [ngValue]="dept.id">{{ dept.name }} ({{ dept.code }}){{ !dept.active ? ' — inactive' : '' }}</option>
+        }
+      </select>
+      @if (showError('departmentId')) {
+        <p class="field-error" id="e-dept-err">{{ serverError('departmentId') ?? 'Select a department.' }}</p>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-hire">Hire date <span class="required-mark" aria-hidden="true">*</span></label>
+      <input id="e-hire" class="input" type="date" formControlName="hireDate"
+             [attr.aria-invalid]="showError('hireDate')" [attr.aria-describedby]="showError('hireDate') ? 'e-hire-err' : null" />
+      @if (showError('hireDate')) { <p class="field-error" id="e-hire-err">Hire date is required.</p> }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-status">Status</label>
+      <select id="e-status" class="select" formControlName="status" aria-describedby="e-status-hint">
+        @for (status of statuses; track status) { <option [value]="status">{{ statusLabel[status] }}</option> }
+      </select>
+      @if (!isAdmin() && !readOnly()) { <p class="field-hint" id="e-status-hint">Only administrators can change status.</p> }
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="e-user">Linked account</label>
+      @if (isAdmin() && !readOnly()) {
+        <app-user-picker inputId="e-user" [value]="linkedUser()" (valueChange)="linkedUser.set($event)" [disabled]="saving()" />
+      } @else {
+        <p class="input readonly-value" id="e-user">{{ linkedUser() ? linkedUser()!.fullName + ' · ' + linkedUser()!.email : 'Not linked' }}</p>
+      }
+    </div>
+  </form>
+
+  <ng-container dialogActions>
+    <button type="button" class="btn btn-secondary" (click)="closed.emit()" [disabled]="saving()">{{ readOnly() ? 'Close' : 'Cancel' }}</button>
+    @if (!readOnly()) {
+      <button type="submit" form="employee-form" class="btn btn-primary" [disabled]="saving() || loading() || conflict()">
+        @if (saving()) { <span class="spinner" aria-hidden="true"></span> }
+        {{ mode() === 'create' ? 'Create employee' : 'Save changes' }}
+      </button>
+    }
+  </ng-container>
+</app-dialog>

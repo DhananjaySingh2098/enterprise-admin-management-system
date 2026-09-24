@@ -1,0 +1,440 @@
+// Hand-written charts. Colours come from tokens (--chart-*, status colours) so every preset/theme applies.
+// Entrance: driven by the nearest [appReveal] ancestor (.is-revealed) — transitions, so reduced motion is instant.
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  padding: var(--app-space-2) var(--app-space-3);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-glass);
+  box-shadow: var(--app-shadow-md);
+  backdrop-filter: blur(12px) saturate(1.4);
+  color: var(--app-text-muted);
+  font-size: var(--app-font-size-xs);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, calc(-100% - 10px));
+  transition: opacity var(--app-duration-fast);
+
+  strong {
+    margin-right: var(--app-space-1);
+    color: var(--app-text);
+  }
+
+  &.is-visible {
+    opacity: 1;
+  }
+}
+
+// ---------------------------------------------------------------- bars
+.bar-chart {
+  display: grid;
+  gap: 2px;
+  margin: 0 calc(var(--app-space-3) * -1);
+  padding: 0;
+  list-style: none;
+  container-type: inline-size;
+}
+
+// One line per department: label | bar | value (stacks the label above the bar in narrow panels).
+.bar-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(7rem, 12.5rem) minmax(0, 1fr) 2.25rem;
+  align-items: center;
+  gap: var(--app-space-3);
+  padding: 0.4375rem var(--app-space-3);
+  border-radius: var(--app-radius-md);
+  outline-offset: 2px;
+  transition: background-color var(--app-transition-fast);
+
+  .chart-tooltip {
+    top: 0;
+    left: 50%;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--app-primary) 5%, transparent);
+
+    .chart-tooltip {
+      opacity: 1;
+    }
+
+    .bar-fill {
+      filter: saturate(1.15) brightness(1.06);
+      box-shadow: 0 0 14px -2px var(--app-glow);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--app-focus-ring);
+  }
+
+  &.is-muted .bar-fill {
+    background: repeating-linear-gradient(135deg, var(--app-border-strong) 0 6px, color-mix(in srgb, var(--app-border-strong) 60%, transparent) 6px 12px);
+    box-shadow: none;
+  }
+}
+
+.bar-label {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  font-size: var(--app-font-size-sm);
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.bar-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-sublabel,
+.bar-tag {
+  flex: none;
+}
+
+// With a status tag the code is dropped first, so the tag is never clipped.
+.bar-row:has(.bar-tag) .bar-sublabel {
+  display: none;
+}
+
+.bar-sublabel {
+  margin-left: var(--app-space-2);
+  color: var(--app-text-soft);
+  font-family: var(--app-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
+.bar-tag {
+  margin-left: var(--app-space-2);
+  padding: 1px 6px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-pill);
+  background: var(--app-surface-sunken);
+  color: var(--app-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.bar-value {
+  min-width: 1.5rem;
+  font-size: var(--app-font-size-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.bar-track {
+  position: relative;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: var(--app-radius-pill);
+  background: var(--app-surface-sunken);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06), inset 0 0 0 1px var(--app-border);
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--chart-1), color-mix(in srgb, var(--chart-1) 45%, var(--chart-2)));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+  transform-origin: left;
+  transition:
+    transform calc(var(--app-duration-slow) * 1.6) var(--app-ease-out),
+    filter var(--app-duration-fast),
+    box-shadow var(--app-duration-fast);
+  transition-delay: calc(200ms + var(--i, 0) * 60ms), 0s, 0s;
+}
+
+.reveal:not(.is-revealed) .bar-fill {
+  transform: scaleX(0);
+}
+
+@container (max-width: 26rem) {
+  .bar-row {
+    grid-template-columns: minmax(0, 1fr) 2.25rem;
+    row-gap: var(--app-space-1);
+
+    .bar-label { grid-column: 1; }
+    .bar-value { grid-column: 2; grid-row: 1; }
+    .bar-track { grid-column: 1 / -1; }
+  }
+}
+
+// ---------------------------------------------------------------- donut
+app-donut-chart {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 12rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--app-space-6);
+
+  @media (max-width: 420px) {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
+.donut {
+  position: relative;
+  width: 100%;
+  max-width: 12rem;
+  aspect-ratio: 1;
+  filter: drop-shadow(0 12px 22px color-mix(in srgb, var(--app-primary) 16%, transparent));
+}
+
+.donut-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.donut-depth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--app-border) 70%, transparent);
+  stroke-width: 0.35;
+  stroke-dasharray: 0.6 1.2;
+}
+
+.donut-track {
+  fill: none;
+  stroke: var(--app-surface-sunken);
+  stroke-width: 5.6;
+}
+
+.donut-hole {
+  fill: var(--app-surface-elevated);
+  stroke: var(--app-border);
+  stroke-width: 0.3;
+}
+
+.donut-arc {
+  fill: none;
+  stroke-width: 5.6;
+  stroke-linecap: butt;
+  transition:
+    stroke-dasharray calc(var(--app-duration-slow) * 2) var(--app-ease-out) 260ms,
+    opacity var(--app-duration-fast),
+    stroke-width var(--app-duration-fast);
+  cursor: default;
+
+  &:hover {
+    stroke-width: 6.6;
+  }
+
+  &.is-dimmed {
+    opacity: 0.3;
+  }
+}
+
+.reveal:not(.is-revealed) .donut-arc {
+  stroke-dasharray: 0 100;
+}
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+
+  strong {
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  span {
+    color: var(--app-text-soft);
+    font-size: var(--app-font-size-xs);
+  }
+}
+
+.donut-legend {
+  display: grid;
+  gap: var(--app-space-1);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto 2.5rem;
+    align-items: center;
+    gap: var(--app-space-3);
+    padding: var(--app-space-2) var(--app-space-3);
+    border: 1px solid transparent;
+    border-radius: var(--app-radius-md);
+    font-size: var(--app-font-size-sm);
+    transition: background-color var(--app-duration-fast), border-color var(--app-duration-fast);
+
+    &.is-active {
+      border-color: var(--app-border);
+      background: var(--app-surface-soft);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--app-focus-ring);
+      outline-offset: 1px;
+    }
+  }
+}
+
+.legend-swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.legend-label {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-share {
+  color: var(--app-text-soft);
+  font-size: var(--app-font-size-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+// ---------------------------------------------------------------- line
+.line-chart {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.line-chart-frame {
+  position: relative;
+  border-radius: var(--app-radius-sm);
+  outline-offset: 4px;
+
+  svg {
+    display: block;
+    overflow: visible;
+  }
+
+  .chart-tooltip {
+    transform: translate(-50%, calc(-100% - 14px));
+  }
+}
+
+.line-empty {
+  position: absolute;
+  inset: 0 0 28px 32px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--app-text-soft);
+  font-size: var(--app-font-size-sm);
+  pointer-events: none;
+}
+
+.grid-line {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  shape-rendering: crispEdges;
+}
+
+.axis-label {
+  fill: var(--app-text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.line {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  filter: drop-shadow(0 4px 8px var(--app-glow));
+  transition: stroke-dashoffset calc(var(--app-duration-slow) * 2.2) var(--app-ease-out) 300ms;
+}
+
+.area {
+  transition: opacity calc(var(--app-duration-slow) * 2) var(--app-ease-out) 500ms;
+}
+
+.reveal:not(.is-revealed) {
+  .line {
+    stroke-dashoffset: 1;
+  }
+
+  .area,
+  .point,
+  .latest-halo {
+    opacity: 0;
+  }
+}
+
+.guide {
+  stroke: var(--app-border-strong);
+  stroke-dasharray: 3 3;
+}
+
+.point {
+  fill: var(--app-surface-elevated);
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  transition: r var(--app-duration-fast), opacity var(--app-duration-slow) 700ms;
+
+  &.is-active,
+  &.is-latest {
+    fill: var(--chart-1);
+    stroke: var(--app-surface-elevated);
+  }
+}
+
+.latest-halo {
+  fill: color-mix(in srgb, var(--chart-1) 16%, transparent);
+  stroke: color-mix(in srgb, var(--chart-1) 35%, transparent);
+  stroke-width: 1;
+  transition: opacity var(--app-duration-slow) 800ms;
+}
+
+.chart-table {
+  font-size: var(--app-font-size-sm);
+
+  summary {
+    width: fit-content;
+    border-radius: var(--app-radius-sm);
+    color: var(--app-primary);
+    font-weight: 600;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--app-focus-ring);
+      outline-offset: 2px;
+    }
+  }
+
+  .table-wrap {
+    margin-top: var(--app-space-3);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-md);
+  }
+}

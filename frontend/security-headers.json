@@ -1,0 +1,49 @@
+{
+  "$comment": "Single source of truth for the SPA's security headers. Run `npm run security:headers` after editing (or after changing the boot script in src/index.html) to regenerate angular.json (dev server) and nginx/security-headers.conf (production). `npm run check:csp` fails on any drift. HSTS is not listed here: nginx sends it only for HTTPS requests (see nginx/default.conf.template).",
+  "contentSecurityPolicy": {
+    "default-src": [
+      "'self'"
+    ],
+    "script-src": [
+      "'self'",
+      "'sha256-+mOEaVXkx47ZX17adDtM9Up360KvsmPmBJOlzm8ukK4='"
+    ],
+    "style-src": [
+      "'self'"
+    ],
+    "img-src": [
+      "'self'",
+      "data:"
+    ],
+    "font-src": [
+      "'self'"
+    ],
+    "connect-src": [
+      "'self'"
+    ],
+    "object-src": [
+      "'none'"
+    ],
+    "base-uri": [
+      "'self'"
+    ],
+    "form-action": [
+      "'self'"
+    ],
+    "frame-ancestors": [
+      "'none'"
+    ],
+    "worker-src": [
+      "'self'"
+    ],
+    "manifest-src": [
+      "'self'"
+    ]
+  },
+  "headers": {
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "Permissions-Policy": "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()",
+    "Cross-Origin-Opener-Policy": "same-origin"
+  }
+}

@@ -1,0 +1,129 @@
+<div class="page">
+  <app-page-header heading="Users" subtitle="Manage system access and roles.">
+    <button type="button" class="btn btn-primary" (click)="openCreate()">
+      <app-icon name="plus" [size]="16" /> Add user
+    </button>
+  </app-page-header>
+
+  <section class="card" aria-label="Users">
+    <div class="toolbar" role="search">
+      <label class="search-field">
+        <span class="visually-hidden">Search users</span>
+        <app-icon name="search" [size]="16" />
+        <input class="input" type="search" [formControl]="search" placeholder="Search name or email" />
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by role</span>
+        <select class="select" (change)="query.setFilter('role', $any($event.target).value || null)">
+          <option value="">All roles</option>
+          @for (role of roles; track role) { <option [value]="role">{{ role }}</option> }
+        </select>
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by status</span>
+        <select class="select" (change)="setEnabledFilter($any($event.target).value)">
+          <option value="">All statuses</option>
+          <option value="true">Enabled</option>
+          <option value="false">Disabled</option>
+        </select>
+      </label>
+      <label>
+        <span class="visually-hidden">Sort by</span>
+        <select class="select" [value]="query.sort()" (change)="query.toggleSort($any($event.target).value)">
+          <option value="createdAt">Sort: Created</option>
+          <option value="name">Sort: Name</option>
+          <option value="email">Sort: Email</option>
+          <option value="status">Sort: Status</option>
+        </select>
+      </label>
+    </div>
+
+    @if (users.error(); as error) {
+      <div class="card-section"><div class="alert alert-danger" role="alert">{{ error }}</div></div>
+    }
+
+    <div class="table-wrap">
+      <table class="data-table responsive" [attr.aria-busy]="users.loading()">
+        <caption class="visually-hidden">System users</caption>
+        <thead>
+          <tr>
+            <th appSortHeader="name" [query]="query">User</th>
+            <th appSortHeader="email" [query]="query">Email</th>
+            <th scope="col">Roles</th>
+            <th appSortHeader="status" [query]="query">Status</th>
+            <th appSortHeader="createdAt" [query]="query">Created</th>
+            <th scope="col" class="col-actions"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (users.loading() && !users.data()) {
+            @for (row of [1, 2, 3, 4]; track row) {
+              <tr class="skeleton-row"><td colspan="6"><span class="skeleton"></span></td></tr>
+            }
+          } @else {
+            @for (user of users.data()?.content ?? []; track user.id) {
+              <tr>
+                <td class="cell-primary" data-label="User">
+                  <div class="identity">
+                    <app-avatar [name]="fullName(user)" size="sm" />
+                    <div class="identity-text">
+                      <strong>{{ fullName(user) }} @if (isSelf(user)) { <app-badge tone="info">You</app-badge> }</strong>
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Email" class="cell-muted">{{ user.email }}</td>
+                <td data-label="Roles">
+                  <span class="badge-list">
+                    @for (role of user.roles; track role) {
+                      <app-badge [tone]="role === 'ADMIN' ? 'primary' : role === 'MANAGER' ? 'info' : 'neutral'">{{ role }}</app-badge>
+                    }
+                  </span>
+                </td>
+                <td data-label="Status">
+                  <app-badge [dot]="true" [tone]="user.enabled ? 'success' : 'danger'">{{ user.enabled ? 'Enabled' : 'Disabled' }}</app-badge>
+                </td>
+                <td data-label="Created" class="cell-muted">{{ user.createdAt | date: 'mediumDate' }}</td>
+                <td class="col-actions">
+                  <span class="row-actions">
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="openEdit(user)" [attr.aria-label]="'Edit ' + fullName(user)">
+                      <app-icon name="pencil" [size]="15" /> Edit
+                    </button>
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="askToggleStatus(user)" [disabled]="isSelf(user)"
+                            [attr.aria-label]="(user.enabled ? 'Disable ' : 'Enable ') + fullName(user)"
+                            [attr.title]="isSelf(user) ? 'You cannot disable your own account' : null">
+                      <app-icon name="power" [size]="15" /> {{ user.enabled ? 'Disable' : 'Enable' }}
+                    </button>
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6">
+                <app-empty-state heading="No users found" icon="users"
+                                 message="Try a different search or filter, or add a new user." />
+              </td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (users.data(); as page) {
+      <div class="table-footer">
+        <app-pagination label="Users pagination" [page]="page.page" [size]="page.size" [total]="page.totalElements"
+                        [totalPages]="page.totalPages" (pageChange)="query.setPage($event)" (sizeChange)="query.setSize($event)" />
+      </div>
+    }
+  </section>
+</div>
+
+<app-user-form [open]="formOpen()" [user]="editing()" [currentUserId]="auth.user()?.id ?? null"
+               (saved)="onSaved($event)" (closed)="formOpen.set(false)" />
+
+<app-confirm-dialog [open]="statusTarget() !== null" [busy]="statusBusy()" [error]="statusError()"
+                    [heading]="statusTarget()?.enabled ? 'Disable user?' : 'Enable user?'"
+                    [message]="statusTarget()?.enabled
+                      ? 'This signs the user out of every session and prevents new sign-ins until re-enabled.'
+                      : 'The user will be able to sign in again.'"
+                    [confirmLabel]="statusTarget()?.enabled ? 'Disable user' : 'Enable user'"
+                    [tone]="statusTarget()?.enabled ? 'danger' : 'primary'"
+                    (confirmed)="confirmToggleStatus()" (cancelled)="statusTarget.set(null)" />

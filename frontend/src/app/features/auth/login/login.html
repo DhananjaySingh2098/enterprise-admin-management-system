@@ -1,0 +1,102 @@
+<div class="auth-page">
+  <aside class="auth-showcase surface-primary" appSpotlight aria-hidden="true">
+    <div class="auth-brand">
+      <span class="brand-mark">EA</span>
+      <span class="brand-name">Enterprise Admin</span>
+    </div>
+    <app-hero-stage />
+    <div class="auth-pitch">
+      <p class="auth-pitch-title">People, access and organization — in one secure console.</p>
+      <ul>
+        <li><app-icon name="shield" [size]="15" /> Role-based access for administrators, managers and staff</li>
+        <li><app-icon name="users" [size]="15" /> Employee records, departments and accounts</li>
+        <li><app-icon name="lock" [size]="15" /> Short-lived sessions with rotating refresh tokens</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-brand auth-brand-compact">
+      <span class="brand-mark" aria-hidden="true">EA</span>
+      <span class="brand-name">Enterprise Admin</span>
+    </div>
+
+    <section class="auth-card" aria-labelledby="login-title">
+      <header class="auth-header">
+        <h1 id="login-title">Sign in</h1>
+        <p>Welcome back. Use your organization account to continue.</p>
+      </header>
+
+      @if (errorMessage(); as message) {
+        <div class="alert alert-danger" role="alert">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path fill="currentColor" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.9 11.5h-1.8v-1.8h1.8v1.8Zm0-3.3h-1.8V6.5h1.8v3.7Z"/></svg>
+          <span>{{ message }}</span>
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate [attr.aria-busy]="submitting()">
+        <div class="field">
+          <label class="field-label" for="email">Email</label>
+          <input
+            #emailInput
+            id="email"
+            class="input"
+            type="email"
+            formControlName="email"
+            autocomplete="username"
+            inputmode="email"
+            autocapitalize="none"
+            spellcheck="false"
+            [attr.aria-invalid]="showError('email')"
+            [attr.aria-describedby]="showError('email') ? 'email-error' : null"
+          />
+          @if (showError('email')) {
+            <p class="field-error" id="email-error">
+              {{ form.controls.email.hasError('required') ? 'Email is required.' : 'Enter a valid email address.' }}
+            </p>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">Password</label>
+          <div class="input-group">
+            <input
+              #passwordInput
+              id="password"
+              class="input"
+              [type]="passwordVisible() ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="current-password"
+              [attr.aria-invalid]="showError('password')"
+              [attr.aria-describedby]="showError('password') ? 'password-error' : null"
+            />
+            <button
+              type="button"
+              class="input-addon"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-pressed]="passwordVisible()"
+              aria-controls="password"
+              [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+            >
+              {{ passwordVisible() ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+          @if (showError('password')) {
+            <p class="field-error" id="password-error">Password is required.</p>
+          }
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" [disabled]="submitting()">
+          @if (submitting()) {
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Signing in…</span>
+          } @else {
+            <span>Sign in</span>
+          }
+        </button>
+      </form>
+
+      <p class="auth-footnote">Need access? Contact your administrator.</p>
+    </section>
+  </main>
+</div>

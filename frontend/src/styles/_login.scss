@@ -1,0 +1,176 @@
+// Login page (moved from the component so no <style> is injected at runtime; see the SPA CSP).
+app-login {
+  & {
+    display: block;
+  }
+
+  // Two columns on wide screens (showcase + form); the form alone below 960px. The page background (ambient fields +
+  // grid) is the same global layer the application uses.
+  .auth-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(24rem, 0.95fr);
+    gap: var(--app-space-8);
+    min-height: 100dvh;
+    padding: var(--app-space-6);
+
+    @media (max-width: 959.98px) {
+      grid-template-columns: minmax(0, 1fr);
+      place-items: center;
+      padding: var(--app-space-6) var(--app-space-4);
+    }
+  }
+
+  .auth-showcase {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--app-space-6);
+    padding: var(--app-space-10);
+    overflow: hidden;
+    animation: auth-enter var(--app-duration-slow) var(--app-ease-out) both;
+
+    app-hero-stage {
+      width: 100%;
+      max-width: 32rem;
+      min-height: 18rem;
+      margin: 0 auto;
+      flex: 1;
+    }
+
+    @media (max-width: 959.98px) {
+      display: none;
+    }
+  }
+
+  .auth-pitch-title {
+    max-width: 26rem;
+    margin: 0 0 var(--app-space-4);
+    font-size: clamp(1.375rem, 1rem + 1vw, 1.875rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+  }
+
+  .auth-pitch ul {
+    display: grid;
+    gap: var(--app-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: var(--app-space-2);
+      color: var(--app-text-muted);
+      font-size: var(--app-font-size-sm);
+
+      .icon {
+        color: var(--app-primary);
+      }
+    }
+  }
+
+  .auth-main {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    width: 100%;
+    animation: auth-enter var(--app-duration-slow) var(--app-ease-out) 80ms both;
+  }
+
+  .auth-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--app-space-3);
+    font-weight: 650;
+    letter-spacing: -0.015em;
+  }
+
+  .auth-brand-compact {
+    display: none;
+    margin-bottom: var(--app-space-6);
+
+    @media (max-width: 959.98px) {
+      display: flex;
+    }
+  }
+
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--app-radius-md);
+    background: var(--app-gradient-brand);
+    color: var(--app-on-primary);
+    font-size: var(--app-font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    box-shadow: var(--app-inner-highlight), 0 8px 20px -6px var(--app-glow);
+  }
+
+  .brand-name {
+    font-size: var(--app-font-size-lg);
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 26rem;
+    padding: var(--app-space-8);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-xl);
+    background: linear-gradient(180deg, var(--app-surface-elevated), var(--app-surface));
+    box-shadow: var(--app-inner-highlight), var(--app-shadow-lg), 0 30px 60px -40px var(--app-glow);
+
+    @media (max-width: 480px) {
+      padding: var(--app-space-6) var(--app-space-5);
+    }
+  }
+
+  .auth-header {
+    margin-bottom: var(--app-space-6);
+
+    h1 {
+      margin: 0 0 var(--app-space-2);
+      font-size: var(--app-font-size-2xl);
+      font-weight: 700;
+      line-height: var(--app-line-height-tight);
+      letter-spacing: -0.025em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--app-text-muted);
+      font-size: var(--app-font-size-sm);
+    }
+  }
+
+  form {
+    display: grid;
+    gap: var(--app-space-5);
+  }
+
+  .btn-block {
+    min-height: 2.875rem;
+    margin-top: var(--app-space-1);
+  }
+
+  .auth-footnote {
+    margin: var(--app-space-6) 0 0;
+    color: var(--app-text-soft);
+    font-size: var(--app-font-size-xs);
+    text-align: center;
+  }
+
+  @keyframes auth-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

@@ -1,0 +1,215 @@
+@if (!isManagement()) {
+  <app-home />
+} @else {
+  <div class="dashboard">
+    <section class="dash-hero" appSpotlight appReveal="80" [soft]="true" aria-labelledby="dash-greeting">
+      <div class="hero-copy">
+        <p class="hero-eyebrow">{{ today | date: 'EEEE, d MMMM' }}</p>
+        <h1 id="dash-greeting">{{ greeting() }}</h1>
+        <p class="hero-lead">Here’s what’s happening with your organization today.</p>
+        @if (heroChips().length) {
+          <ul class="hero-chips" aria-label="Organization summary">
+            @for (chip of heroChips(); track chip.text) {
+              <li><span class="chip-icon"><app-icon [name]="chip.icon" [size]="13" /></span>{{ chip.text }}</li>
+            }
+          </ul>
+        } @else if (loading()) {
+          <ul class="hero-chips" aria-hidden="true"><li class="is-skeleton"><span class="skeleton"></span></li><li class="is-skeleton"><span class="skeleton"></span></li></ul>
+        }
+      </div>
+      <div class="hero-side">
+        <div class="hero-actions">
+          @if (summary(); as s) {
+            <button type="button" class="hero-updated" (click)="load()" [disabled]="loading()" aria-label="Refresh dashboard">
+              <app-icon name="refresh" [size]="14" [class.is-spinning]="loading()" />
+              <span>Last updated {{ s.generatedAt | date: 'shortTime' }}</span>
+            </button>
+          }
+          <a class="btn btn-primary" routerLink="/employees" [queryParams]="{ new: 1 }">
+            <app-icon name="plus" [size]="16" /> Add employee
+          </a>
+        </div>
+        <app-hero-stage />
+      </div>
+    </section>
+
+    @if (error(); as message) {
+      <div class="alert alert-danger" role="alert">
+        <span>{{ message }}</span>
+        <button type="button" class="btn btn-secondary btn-sm alert-actions" (click)="load()">Try again</button>
+      </div>
+    }
+
+    @if (!data() && loading()) {
+      <div class="dash-grid" aria-busy="true" aria-label="Loading dashboard">
+        @for (i of [0, 1, 2, 3]; track i) { <div class="kpi-card is-skeleton"><span class="skeleton"></span><span class="skeleton skeleton-lg"></span></div> }
+        <div class="dash-panel card-analytics span-7 is-skeleton"><span class="skeleton"></span></div>
+        <div class="dash-panel card-analytics span-5 is-skeleton"><span class="skeleton"></span></div>
+      </div>
+    }
+
+    @if (data(); as d) {
+      @if (!hasEmployees()) {
+        <section class="dash-panel card-analytics dash-onboarding" appReveal="130" aria-labelledby="onboarding-title">
+          <span class="empty-state-icon"><app-icon name="briefcase" [size]="22" /></span>
+          <div>
+            <h2 id="onboarding-title">No employees yet</h2>
+            @if (d.summary.departments.active === 0) {
+              <p>Workforce analytics appear here once you create a department and add employees.</p>
+            } @else {
+              <p>Add your first employee to start seeing workforce analytics.</p>
+            }
+          </div>
+          @if (d.summary.departments.active === 0 && isAdmin()) {
+            <a class="btn btn-primary" routerLink="/departments" [queryParams]="{ new: 1 }">Create department</a>
+          } @else if (d.summary.departments.active > 0) {
+            <a class="btn btn-primary" routerLink="/employees" [queryParams]="{ new: 1 }">Add employee</a>
+          }
+        </section>
+      } @else {
+        <div class="dash-grid">
+          @for (kpi of kpis(); track kpi.label; let i = $index) {
+            <app-kpi-card [label]="kpi.label" [value]="kpi.value" [icon]="kpi.icon" [tone]="kpi.tone" [detail]="kpi.detail"
+                          [segments]="kpi.segments" [revealDelay]="130 + i * 50" [revealSoft]="true" />
+          }
+
+          <section class="dash-panel card-analytics span-7" appReveal="220" aria-labelledby="headcount-title">
+            <header class="panel-header">
+              <span class="icon-badge"><app-icon name="users" [size]="17" /></span>
+              <div class="panel-title">
+                <h2 id="headcount-title">Headcount by department</h2>
+                <p>{{ plural(currentHeadcount(), 'current employee') }} · active and on leave</p>
+              </div>
+              <a class="btn btn-secondary btn-sm panel-action" routerLink="/departments">View departments <app-icon name="chevron-right" [size]="14" /></a>
+            </header>
+            <app-bar-chart [data]="bars()" label="Current headcount per department" />
+            @if (hiddenDepartments() > 0) {
+              <p class="panel-footnote">and {{ plural(hiddenDepartments(), 'smaller department') }} — <a routerLink="/departments">view all</a></p>
+            }
+          </section>
+
+          <section class="dash-panel card-analytics span-5 status-panel" appReveal="260" aria-labelledby="status-title">
+            <header class="panel-header">
+              <span class="icon-badge" data-tone="accent"><app-icon name="check" [size]="17" /></span>
+              <div class="panel-title">
+                <h2 id="status-title">Employee status</h2>
+                <p>All {{ plural(d.summary.employees.total, 'employee record') }}</p>
+              </div>
+            </header>
+            <app-donut-chart [data]="donut()" label="Employees by status" centerLabel="employees" />
+          </section>
+
+          <section class="dash-panel card-analytics" [class.span-7]="isAdmin()" [class.span-12]="!isAdmin()" appReveal="300" aria-labelledby="recent-title">
+            <header class="panel-header">
+              <span class="icon-badge" data-tone="accent-2"><app-icon name="user" [size]="17" /></span>
+              <div class="panel-title">
+                <h2 id="recent-title">Recent hires</h2>
+                <p>Most recent start dates up to today</p>
+              </div>
+              <a class="btn btn-secondary btn-sm panel-action" routerLink="/employees">View all employees <app-icon name="chevron-right" [size]="14" /></a>
+            </header>
+            @if (d.recent.length) {
+              <div class="recent-table-wrap">
+                <table class="recent-table">
+                  <caption class="visually-hidden">Recent hires</caption>
+                  <thead>
+                    <tr><th scope="col">Employee</th><th scope="col" class="col-dept">Department</th><th scope="col">Status</th><th scope="col" class="col-date">Start date</th><th scope="col"><span class="visually-hidden">Open</span></th></tr>
+                  </thead>
+                  <tbody>
+                    @for (e of d.recent; track e.id; let i = $index) {
+                      <tr [style.--i]="i">
+                        <td>
+                          <div class="recent-person">
+                            <app-avatar [name]="fullName(e)" size="sm" />
+                            <span class="recent-main">
+                              <a class="recent-link" routerLink="/employees" [queryParams]="{ open: e.id }"
+                                 [attr.aria-label]="'Open ' + fullName(e) + ', ' + e.jobTitle">{{ fullName(e) }}</a>
+                              <span><span class="cell-mono">{{ e.employeeCode }}</span> · {{ e.jobTitle }}</span>
+                            </span>
+                          </div>
+                        </td>
+                        <td class="col-dept">{{ e.departmentName }}</td>
+                        <td><app-badge [dot]="true" [tone]="statusTone[e.status]">{{ statusLabel[e.status] }}</app-badge></td>
+                        <td class="col-date"><time [attr.datetime]="e.hireDate">{{ e.hireDate | date: 'mediumDate' }}</time></td>
+                        <td class="col-go"><app-icon name="chevron-right" [size]="16" /></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="panel-empty">No hire dates on or before today yet.</p>
+            }
+          </section>
+
+          @if (d.users; as users) {
+            <section class="dash-panel card-analytics span-5 access-panel" appSpotlight appReveal="340" aria-labelledby="access-title">
+              <header class="panel-header">
+                <span class="icon-badge"><app-icon name="lock" [size]="17" /></span>
+                <div class="panel-title">
+                  <h2 id="access-title">System access</h2>
+                  <p>{{ plural(users.total, 'account') }}</p>
+                </div>
+                <a class="btn btn-secondary btn-sm panel-action" routerLink="/users">Manage users <app-icon name="chevron-right" [size]="14" /></a>
+              </header>
+              <div class="access-stats">
+                <div class="access-box">
+                  <span class="access-figure"><strong>{{ users.enabled }}</strong><span><i class="dot dot-success" aria-hidden="true"></i>Enabled</span></span>
+                  <span class="access-art" aria-hidden="true"><app-icon name="users" [size]="26" /></span>
+                </div>
+                <div class="access-box">
+                  <span class="access-figure"><strong>{{ users.disabled }}</strong><span><i class="dot dot-danger" aria-hidden="true"></i>Disabled</span></span>
+                  <span class="access-art" aria-hidden="true"><app-icon name="users" [size]="26" /></span>
+                </div>
+              </div>
+              <ul class="role-bars" aria-label="Accounts per role">
+                @for (role of roleRows(); track role.role) {
+                  <li>
+                    <span class="role-name">{{ role.label }}</span>
+                    <span class="role-track" aria-hidden="true"><span class="role-fill" [attr.data-role]="role.role" [style.width.%]="role.width"></span></span>
+                    <span class="role-count">{{ role.users }}</span>
+                  </li>
+                }
+              </ul>
+              <p class="panel-footnote">
+                Role counts are accounts holding each role.
+                @if (users.multiRoleUsers > 0) { {{ users.multiRoleUsers }} {{ users.multiRoleUsers === 1 ? 'account holds' : 'accounts hold' }} several roles, so they can exceed the total. }
+              </p>
+            </section>
+          }
+
+          <section class="dash-panel card-analytics span-12" appReveal="120" aria-labelledby="trend-title">
+            <header class="panel-header">
+              <span class="icon-badge" data-tone="accent-2"><app-icon name="chart" [size]="17" /></span>
+              <div class="panel-title">
+                <h2 id="trend-title">Hiring trend</h2>
+                <p>
+                  {{ plural(d.trend.total, 'hire') }} in the last {{ trendMonths() }} months ({{ d.trend.from | date: 'MMM y' }} – {{ d.trend.to | date: 'MMM y' }})
+                  @if (busiestMonth(); as busiest) { · busiest: {{ busiest }} }
+                </p>
+              </div>
+              <div class="range-toggle" role="group" aria-label="Trend range">
+                @for (range of [12, 24]; track range) {
+                  <button type="button" [attr.aria-pressed]="trendMonths() === range" (click)="setTrendRange(range)">{{ range }}M</button>
+                }
+              </div>
+            </header>
+            <app-line-chart [data]="trendPoints()" [height]="190" [label]="'Hires per month over the last ' + trendMonths() + ' months'" />
+            <details class="chart-table">
+              <summary>Show data table</summary>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <caption class="visually-hidden">Hires per month</caption>
+                  <thead><tr><th scope="col">Month</th><th scope="col">Hires</th></tr></thead>
+                  <tbody>
+                    @for (point of trendPoints(); track point.fullLabel) { <tr><td>{{ point.fullLabel }}</td><td>{{ point.value }}</td></tr> }
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </section>
+        </div>
+      }
+    }
+  </div>
+}

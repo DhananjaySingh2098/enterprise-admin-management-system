@@ -1,0 +1,159 @@
+<div class="page settings-page">
+  <app-page-header heading="Settings" subtitle="Personalize how the workspace looks and manage organization-wide options." />
+
+  <div class="settings-grid">
+    <!-- Appearance -->
+    <section class="card settings-card settings-appearance" appSpotlight appReveal="60" aria-labelledby="appearance-title">
+      <header class="settings-card-head">
+        <span class="icon-badge"><app-icon name="sliders" [size]="17" /></span>
+        <div>
+          <h2 id="appearance-title">Appearance</h2>
+          <p class="sync-status" [attr.data-state]="sync.state()" role="status">
+            <span class="sync-dot" aria-hidden="true"></span>{{ syncLabel() }}
+          </p>
+        </div>
+      </header>
+
+      <fieldset class="settings-group">
+        <legend>Mode</legend>
+        <div class="pref-grid pref-grid-3">
+          @for (mode of modes; track mode.value) {
+            <label class="pref-choice" [class.is-selected]="theme.mode() === mode.value">
+              <input type="radio" name="settings-mode" [value]="mode.value" [checked]="theme.mode() === mode.value" (change)="setMode(mode.value)" />
+              <span class="mode-preview" [attr.data-mode]="mode.value" aria-hidden="true">
+                <span class="mp-bar"></span><span class="mp-card"></span><span class="mp-card is-short"></span>
+              </span>
+              <span class="pref-text"><app-icon [name]="modeIcon[mode.value]" [size]="14" /> {{ mode.label }}</span>
+              <span class="pref-check" aria-hidden="true"><app-icon name="check" [size]="12" /></span>
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="settings-group">
+        <legend>Visual style</legend>
+        <div class="pref-grid pref-grid-5">
+          @for (preset of presets; track preset.value) {
+            <label class="pref-choice" [class.is-selected]="theme.preset() === preset.value">
+              <input type="radio" name="settings-preset" [value]="preset.value" [checked]="theme.preset() === preset.value" (change)="setPreset(preset.value)" />
+              <span class="preset-preview" [attr.data-preview]="preset.value" aria-hidden="true">
+                <span class="pp-side"></span>
+                <span class="pp-main"><span class="pp-hero"></span><span class="pp-row"><i></i><i></i><i></i></span></span>
+              </span>
+              <span class="pref-text"><strong>{{ preset.label }}</strong><span>{{ preset.description }}</span></span>
+              <span class="pref-check" aria-hidden="true"><app-icon name="check" [size]="12" /></span>
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="settings-group">
+        <legend>Density</legend>
+        <div class="pref-grid pref-grid-2">
+          @for (density of densities; track density.value) {
+            <label class="pref-choice pref-row" [class.is-selected]="theme.density() === density.value">
+              <input type="radio" name="settings-density" [value]="density.value" [checked]="theme.density() === density.value" (change)="setDensity(density.value)" />
+              <span class="density-preview" [attr.data-density]="density.value" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
+              </span>
+              <span class="pref-text"><strong>{{ density.label }}</strong><span>{{ density.description }}</span></span>
+              <span class="pref-check" aria-hidden="true"><app-icon name="check" [size]="12" /></span>
+            </label>
+          }
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- Account -->
+    <section class="card settings-card settings-account" appReveal="120" aria-labelledby="account-title">
+      <header class="settings-card-head">
+        <span class="icon-badge" data-tone="accent-2"><app-icon name="user" [size]="17" /></span>
+        <div>
+          <h2 id="account-title">Account</h2>
+          <p>Your identity and where to manage it.</p>
+        </div>
+      </header>
+      <div class="account-identity">
+        <app-avatar [name]="auth.displayName()" size="lg" />
+        <div>
+          <strong>{{ auth.displayName() }}</strong>
+          <span>{{ auth.user()?.email }}</span>
+          <span class="badge-list">
+            @for (role of roleLabels(); track role) { <app-badge tone="primary">{{ role }}</app-badge> }
+          </span>
+        </div>
+      </div>
+      <ul class="settings-links">
+        <li>
+          <a routerLink="/profile" class="settings-link">
+            <span class="icon-badge"><app-icon name="pencil" [size]="15" /></span>
+            <span><strong>Profile & password</strong><span>Update your name, email or password</span></span>
+            <app-icon class="settings-link-go" name="chevron-right" [size]="16" />
+          </a>
+        </li>
+        <li>
+          <a routerLink="/notifications" class="settings-link">
+            <span class="icon-badge" data-tone="warning"><app-icon name="bell" [size]="15" /></span>
+            <span><strong>Notifications</strong><span>{{ center.unread() === 0 ? 'No unread notifications' : center.unread() + ' unread' }}</span></span>
+            <app-icon class="settings-link-go" name="chevron-right" [size]="16" />
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Organization (ADMIN) -->
+    @if (isAdmin()) {
+      <section class="card settings-card settings-org" appReveal="180" aria-labelledby="org-title">
+        <header class="settings-card-head">
+          <span class="icon-badge" data-tone="info"><app-icon name="building" [size]="17" /></span>
+          <div>
+            <h2 id="org-title">Organization <app-badge tone="primary">Admin</app-badge></h2>
+            <p>Applies to everyone in this workspace.@if (org(); as o) { Last changed {{ o.updatedAt | date: 'medium' }}. }</p>
+          </div>
+        </header>
+
+        @if (orgError(); as error) {
+          <div class="alert" [class.alert-warning]="orgStale()" [class.alert-danger]="!orgStale()" role="alert">
+            <span>{{ error }}</span>
+            @if (orgStale()) { <button type="button" class="btn btn-secondary btn-sm alert-actions" (click)="loadOrganization()">Reload latest</button> }
+          </div>
+        }
+
+        @if (org()) {
+          <form [formGroup]="orgForm" (ngSubmit)="saveOrganization()" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label class="field-label" for="org-name">Organization name</label>
+                <input id="org-name" class="input" formControlName="organizationName" maxlength="120" autocomplete="organization"
+                       [attr.aria-invalid]="orgForm.controls.organizationName.invalid && orgForm.controls.organizationName.touched"
+                       aria-describedby="org-name-hint" />
+                <p class="field-hint" id="org-name-hint">Shown in the header breadcrumb for every user.</p>
+                @if (orgForm.controls.organizationName.invalid && orgForm.controls.organizationName.touched) {
+                  <p class="field-error">Enter a name of up to 120 characters.</p>
+                }
+              </div>
+              <div class="field">
+                <label class="field-label" for="org-window">Recent-hire window (days)</label>
+                <input id="org-window" class="input" type="number" min="1" max="365" step="1" formControlName="recentHireWindowDays"
+                       [attr.aria-invalid]="orgForm.controls.recentHireWindowDays.invalid && orgForm.controls.recentHireWindowDays.touched"
+                       aria-describedby="org-window-hint" />
+                <p class="field-hint" id="org-window-hint">Used by the dashboard's "hires in the last N days" figure. 1–365.</p>
+                @if (orgForm.controls.recentHireWindowDays.invalid && orgForm.controls.recentHireWindowDays.touched) {
+                  <p class="field-error">Enter a whole number from 1 to 365.</p>
+                }
+              </div>
+            </div>
+            <div class="settings-actions">
+              <button type="button" class="btn btn-ghost" (click)="resetOrganization()" [disabled]="orgForm.pristine || orgSaving()">Discard</button>
+              <button type="submit" class="btn btn-primary" [disabled]="orgForm.pristine || orgSaving()">
+                {{ orgSaving() ? 'Saving…' : 'Save changes' }}
+              </button>
+            </div>
+          </form>
+        } @else if (!orgError()) {
+          <div class="settings-skeleton" aria-busy="true"><span class="skeleton"></span><span class="skeleton"></span></div>
+        }
+      </section>
+    }
+  </div>
+</div>

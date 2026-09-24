@@ -1,0 +1,242 @@
+@use 'sass:map';
+
+// Design tokens — the single source of visual truth. See docs/DESIGN_SYSTEM.md.
+// Components consume only these CSS custom properties, never raw colour/size values.
+//
+// Two independent axes on <html>:
+//   data-theme  = light | dark (absent → follow prefers-color-scheme)
+//   data-preset = aurora | obsidian | pearl | midnight | emerald
+// Each preset defines the SAME colour keys for light and dark, so nothing leaks between modes.
+
+// ---------------------------------------------------------------- mode-level tokens (status, shadows)
+$mode: (
+  light: (
+    app-success: #15803d, app-warning: #b45309, app-danger: #dc2626, app-info: #0e7490,
+    app-shadow-sm: '0 1px 2px rgb(40 30 110 / 0.04), 0 6px 18px -8px rgb(40 30 110 / 0.1)',
+    app-shadow-md: '0 1px 2px rgb(40 30 110 / 0.04), 0 14px 34px -12px rgb(40 30 110 / 0.18)',
+    app-shadow-lg: '0 2px 6px rgb(40 30 110 / 0.05), 0 30px 60px -18px rgb(40 30 110 / 0.28)',
+    app-scrim: 'rgb(10 12 24 / 0.42)',
+  ),
+  dark: (
+    app-success: #4ade80, app-warning: #fbbf24, app-danger: #f87171, app-info: #22d3ee,
+    app-shadow-sm: '0 1px 2px rgb(0 0 0 / 0.45)',
+    app-shadow-md: '0 1px 2px rgb(0 0 0 / 0.4), 0 12px 30px -10px rgb(0 0 0 / 0.6)',
+    app-shadow-lg: '0 2px 8px rgb(0 0 0 / 0.4), 0 32px 64px -18px rgb(0 0 0 / 0.75)',
+    app-scrim: 'rgb(0 0 0 / 0.6)',
+  ),
+);
+
+// ---------------------------------------------------------------- presets
+$presets: (
+  aurora: (
+    light: (app-bg: #f3f2fb, app-surface: #ffffff, app-surface-soft: #f8f7fe, app-surface-elevated: #ffffff,
+      app-surface-glass: rgb(255 255 255 / 0.78), app-surface-sunken: #eeedf8, app-text: #111230, app-text-muted: #4d4f6e,
+      app-text-soft: #676a87, app-primary: #5b4de8, app-primary-hover: #4c3fd6, app-on-primary: #ffffff,
+      app-primary-soft: rgb(91 77 232 / 0.1), app-accent: #8b5cf6, app-accent-2: #3b82f6, app-border: #e6e4f3,
+      app-border-strong: #d2cfe8, app-focus-ring: rgb(91 77 232 / 0.42), app-glow: rgb(109 93 246 / 0.34),
+      app-ambient-1: rgb(139 124 246 / 0.2), app-ambient-2: rgb(96 165 250 / 0.14), app-ambient-3: rgb(167 139 250 / 0.14),
+      app-grid-line: rgb(60 50 140 / 0.045), chart-grid: #e9e7f5, app-highlight: rgb(255 255 255 / 0.95)),
+    dark: (app-bg: #0b0c18, app-surface: #121327, app-surface-soft: #15172d, app-surface-elevated: #1a1c36,
+      app-surface-glass: rgb(22 24 46 / 0.76), app-surface-sunken: #0d0e1e, app-text: #eeedfb, app-text-muted: #a9a8c9,
+      app-text-soft: #8d8cb0, app-primary: #9387ff, app-primary-hover: #aaa0ff, app-on-primary: #0d0b24,
+      app-primary-soft: rgb(147 135 255 / 0.15), app-accent: #b39bff, app-accent-2: #6ea8ff, app-border: #25264a,
+      app-border-strong: #363866, app-focus-ring: rgb(147 135 255 / 0.5), app-glow: rgb(139 124 255 / 0.4),
+      app-ambient-1: rgb(109 93 246 / 0.22), app-ambient-2: rgb(59 130 246 / 0.12), app-ambient-3: rgb(139 92 246 / 0.12),
+      app-grid-line: rgb(255 255 255 / 0.035), chart-grid: #22244a, app-highlight: rgb(255 255 255 / 0.06)),
+  ),
+  obsidian: (
+    light: (app-bg: #f3f3f5, app-surface: #ffffff, app-surface-soft: #f8f8fa, app-surface-elevated: #ffffff,
+      app-surface-glass: rgb(255 255 255 / 0.75), app-surface-sunken: #ececef, app-text: #111114, app-text-muted: #4f4f5b,
+      app-text-soft: #676774, app-primary: #4b44c6, app-primary-hover: #3d37a8, app-on-primary: #ffffff,
+      app-primary-soft: rgb(75 68 198 / 0.09), app-accent: #6d5de8, app-accent-2: #3b6fd8, app-border: #e2e2e7,
+      app-border-strong: #cacad2, app-focus-ring: rgb(75 68 198 / 0.4), app-glow: rgb(91 79 214 / 0.26),
+      app-ambient-1: rgb(24 24 27 / 0.05), app-ambient-2: rgb(91 79 214 / 0.07), app-ambient-3: rgb(59 111 216 / 0.05),
+      app-grid-line: rgb(17 17 20 / 0.045), chart-grid: #e7e7eb, app-highlight: rgb(255 255 255 / 0.9)),
+    dark: (app-bg: #09090b, app-surface: #111113, app-surface-soft: #141417, app-surface-elevated: #1a1a1e,
+      app-surface-glass: rgb(20 20 23 / 0.75), app-surface-sunken: #0c0c0e, app-text: #f1f1f4, app-text-muted: #a8a8b3,
+      app-text-soft: #8b8b96, app-primary: #a39bff, app-primary-hover: #bab4ff, app-on-primary: #0c0b18,
+      app-primary-soft: rgb(163 155 255 / 0.13), app-accent: #8b7cf6, app-accent-2: #6b9cff, app-border: #26262c,
+      app-border-strong: #3a3a43, app-focus-ring: rgb(163 155 255 / 0.5), app-glow: rgb(139 124 246 / 0.3),
+      app-ambient-1: rgb(139 124 246 / 0.09), app-ambient-2: rgb(107 156 255 / 0.06), app-ambient-3: rgb(255 255 255 / 0.025),
+      app-grid-line: rgb(255 255 255 / 0.03), chart-grid: #232329, app-highlight: rgb(255 255 255 / 0.07)),
+  ),
+  pearl: (
+    light: (app-bg: #f8f5f0, app-surface: #fffdfa, app-surface-soft: #fbf8f3, app-surface-elevated: #ffffff,
+      app-surface-glass: rgb(255 253 250 / 0.76), app-surface-sunken: #f1ece4, app-text: #1d1a16, app-text-muted: #5a5246,
+      app-text-soft: #71685b, app-primary: #86662f, app-primary-hover: #6f5424, app-on-primary: #ffffff,
+      app-primary-soft: rgb(134 102 47 / 0.1), app-accent: #b08a52, app-accent-2: #6e7fa8, app-border: #e9e2d7,
+      app-border-strong: #d6ccbd, app-focus-ring: rgb(134 102 47 / 0.4), app-glow: rgb(184 146 90 / 0.3),
+      app-ambient-1: rgb(214 185 140 / 0.24), app-ambient-2: rgb(236 214 186 / 0.3), app-ambient-3: rgb(184 146 90 / 0.08),
+      app-grid-line: rgb(29 26 22 / 0.04), chart-grid: #eee7dc, app-highlight: rgb(255 255 255 / 0.92)),
+    dark: (app-bg: #12100d, app-surface: #1a1713, app-surface-soft: #1e1a16, app-surface-elevated: #24201b,
+      app-surface-glass: rgb(30 26 22 / 0.75), app-surface-sunken: #0f0d0b, app-text: #f4efe7, app-text-muted: #b6ac9b,
+      app-text-soft: #978d7d, app-primary: #dcbb83, app-primary-hover: #e8cc9a, app-on-primary: #1a140b,
+      app-primary-soft: rgb(220 187 131 / 0.14), app-accent: #c9a36a, app-accent-2: #9fb0d6, app-border: #2f2a23,
+      app-border-strong: #453e34, app-focus-ring: rgb(220 187 131 / 0.5), app-glow: rgb(220 187 131 / 0.26),
+      app-ambient-1: rgb(220 187 131 / 0.11), app-ambient-2: rgb(201 163 106 / 0.07), app-ambient-3: rgb(159 176 214 / 0.05),
+      app-grid-line: rgb(255 255 255 / 0.03), chart-grid: #2a251f, app-highlight: rgb(255 255 255 / 0.05)),
+  ),
+  midnight: (
+    light: (app-bg: #f2f5fb, app-surface: #ffffff, app-surface-soft: #f7f9fd, app-surface-elevated: #ffffff,
+      app-surface-glass: rgb(255 255 255 / 0.75), app-surface-sunken: #eaeff8, app-text: #0b1530, app-text-muted: #475574,
+      app-text-soft: #5f6d8a, app-primary: #2f55d4, app-primary-hover: #2446b5, app-on-primary: #ffffff,
+      app-primary-soft: rgb(47 85 212 / 0.1), app-accent: #4f46e5, app-accent-2: #0284c7, app-border: #dfe6f2,
+      app-border-strong: #c7d2e5, app-focus-ring: rgb(47 85 212 / 0.42), app-glow: rgb(47 85 212 / 0.3),
+      app-ambient-1: rgb(47 85 212 / 0.13), app-ambient-2: rgb(79 70 229 / 0.09), app-ambient-3: rgb(14 165 233 / 0.08),
+      app-grid-line: rgb(11 21 48 / 0.045), chart-grid: #e1e8f3, app-highlight: rgb(255 255 255 / 0.9)),
+    dark: (app-bg: #050a19, app-surface: #0a1226, app-surface-soft: #0d162d, app-surface-elevated: #111c37,
+      app-surface-glass: rgb(12 21 43 / 0.75), app-surface-sunken: #060c1c, app-text: #e8eefc, app-text-muted: #9dacca,
+      app-text-soft: #8291b0, app-primary: #7391ff, app-primary-hover: #91a8ff, app-on-primary: #050a19,
+      app-primary-soft: rgb(115 145 255 / 0.15), app-accent: #818cf8, app-accent-2: #38bdf8, app-border: #1a2645,
+      app-border-strong: #2a3a64, app-focus-ring: rgb(115 145 255 / 0.5), app-glow: rgb(111 140 255 / 0.36),
+      app-ambient-1: rgb(59 91 219 / 0.24), app-ambient-2: rgb(99 102 241 / 0.13), app-ambient-3: rgb(56 189 248 / 0.07),
+      app-grid-line: rgb(255 255 255 / 0.035), chart-grid: #16213d, app-highlight: rgb(255 255 255 / 0.06)),
+  ),
+  emerald: (
+    light: (app-bg: #f3f6f4, app-surface: #ffffff, app-surface-soft: #f7faf8, app-surface-elevated: #ffffff,
+      app-surface-glass: rgb(255 255 255 / 0.75), app-surface-sunken: #e9efeb, app-text: #0d1a14, app-text-muted: #475850,
+      app-text-soft: #5f6f67, app-primary: #047857, app-primary-hover: #065f46, app-on-primary: #ffffff,
+      app-primary-soft: rgb(4 120 87 / 0.1), app-accent: #0f766e, app-accent-2: #0e7490, app-border: #dfe7e2,
+      app-border-strong: #c8d4cd, app-focus-ring: rgb(4 120 87 / 0.42), app-glow: rgb(16 185 129 / 0.26),
+      app-ambient-1: rgb(16 185 129 / 0.13), app-ambient-2: rgb(20 83 45 / 0.07), app-ambient-3: rgb(13 148 136 / 0.07),
+      app-grid-line: rgb(13 26 20 / 0.045), chart-grid: #e2e9e5, app-highlight: rgb(255 255 255 / 0.9)),
+    dark: (app-bg: #06100c, app-surface: #0c1712, app-surface-soft: #0f1b15, app-surface-elevated: #13211a,
+      app-surface-glass: rgb(14 26 20 / 0.75), app-surface-sunken: #050c09, app-text: #e9f5ef, app-text-muted: #a0b6ab,
+      app-text-soft: #84998f, app-primary: #34d399, app-primary-hover: #6ee7b7, app-on-primary: #04140d,
+      app-primary-soft: rgb(52 211 153 / 0.14), app-accent: #2dd4bf, app-accent-2: #5eead4, app-border: #1c2d25,
+      app-border-strong: #2c4338, app-focus-ring: rgb(52 211 153 / 0.5), app-glow: rgb(52 211 153 / 0.26),
+      app-ambient-1: rgb(16 185 129 / 0.15), app-ambient-2: rgb(21 94 61 / 0.16), app-ambient-3: rgb(45 212 191 / 0.05),
+      app-grid-line: rgb(255 255 255 / 0.03), chart-grid: #1a2a22, app-highlight: rgb(255 255 255 / 0.05)),
+  ),
+);
+
+@mixin apply-tokens($tokens) {
+  @each $name, $value in $tokens {
+    --#{$name}: #{$value};
+  }
+}
+
+@mixin light-palette {
+  @include apply-tokens(map.get($mode, light));
+  @include apply-tokens(map.get(map.get($presets, aurora), light));
+  color-scheme: light;
+}
+
+@mixin dark-palette {
+  @include apply-tokens(map.get($mode, dark));
+  @include apply-tokens(map.get(map.get($presets, aurora), dark));
+  color-scheme: dark;
+}
+
+:root {
+  // Typography
+  --app-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --app-font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --app-font-size-xs: 0.75rem;
+  --app-font-size-sm: 0.875rem;
+  --app-font-size-md: 1rem;
+  --app-font-size-lg: 1.125rem;
+  --app-font-size-xl: 1.25rem;
+  --app-font-size-2xl: 1.5rem;
+  --app-font-size-3xl: 1.875rem;
+  --app-font-size-4xl: 2.25rem;
+  --app-line-height-tight: 1.2;
+  --app-line-height-normal: 1.5;
+
+  // Spacing (4px base)
+  --app-space-1: 0.25rem;
+  --app-space-2: 0.5rem;
+  --app-space-3: 0.75rem;
+  --app-space-4: 1rem;
+  --app-space-5: 1.25rem;
+  --app-space-6: 1.5rem;
+  --app-space-8: 2rem;
+  --app-space-10: 2.5rem;
+  --app-space-12: 3rem;
+  --app-space-16: 4rem;
+
+  // Radius
+  --app-radius-sm: 8px;
+  --app-radius-md: 12px;
+  --app-radius-lg: 18px;
+  --app-radius-xl: 22px;
+  --app-radius-pill: 999px;
+
+  // Motion
+  --app-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --app-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --app-ease-emphasized: cubic-bezier(0.3, 0, 0, 1.2);
+  --app-duration-fast: 160ms;
+  --app-duration-normal: 260ms;
+  --app-duration-slow: 420ms;
+  --app-transition-fast: var(--app-duration-fast) var(--app-ease-standard);
+  --app-transition-normal: var(--app-duration-normal) var(--app-ease-standard);
+  --app-transition-slow: var(--app-duration-slow) var(--app-ease-standard);
+
+  @include light-palette;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include dark-palette;
+  }
+}
+
+:root[data-theme='dark'] {
+  @include dark-palette;
+}
+
+@each $preset, $modes in $presets {
+  :root[data-preset='#{$preset}'] {
+    @include apply-tokens(map.get($modes, light));
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root[data-preset='#{$preset}']:not([data-theme='light']) {
+      @include apply-tokens(map.get($modes, dark));
+    }
+  }
+
+  :root[data-preset='#{$preset}'][data-theme='dark'] {
+    @include apply-tokens(map.get($modes, dark));
+  }
+}
+
+// Derived tokens, resolved per element so they always follow the active palette.
+:root {
+  --app-on-primary-muted: color-mix(in srgb, var(--app-on-primary) 80%, transparent);
+  --app-gradient-primary: linear-gradient(135deg, var(--app-primary) 0%, color-mix(in srgb, var(--app-primary) 55%, var(--app-accent)) 100%);
+  --app-gradient-brand: linear-gradient(135deg, var(--app-primary), var(--app-accent) 55%, var(--app-accent-2));
+  --app-inner-highlight: inset 0 1px 0 var(--app-highlight);
+  --chart-1: var(--app-primary);
+  --chart-2: var(--app-accent-2);
+  --chart-3: var(--app-accent);
+
+  // Short aliases for the documented token vocabulary.
+  --surface: var(--app-surface);
+  --surface-soft: var(--app-surface-soft);
+  --surface-elevated: var(--app-surface-elevated);
+  --surface-glass: var(--app-surface-glass);
+  --text: var(--app-text);
+  --text-muted: var(--app-text-muted);
+  --text-soft: var(--app-text-soft);
+  --primary: var(--app-primary);
+  --primary-soft: var(--app-primary-soft);
+  --accent: var(--app-accent);
+  --border: var(--app-border);
+  --shadow-sm: var(--app-shadow-sm);
+  --shadow-md: var(--app-shadow-md);
+  --shadow-lg: var(--app-shadow-lg);
+  --glow: var(--app-glow);
+  --success: var(--app-success);
+  --warning: var(--app-warning);
+  --danger: var(--app-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --app-duration-fast: 0ms;
+    --app-duration-normal: 0ms;
+    --app-duration-slow: 0ms;
+  }
+}

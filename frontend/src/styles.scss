@@ -1,0 +1,104 @@
+@use 'styles/tokens';
+@use 'styles/forms';
+@use 'styles/components';
+@use 'styles/shell';
+@use 'styles/theme-menu';
+@use 'styles/surfaces';
+@use 'styles/hero-stage';
+@use 'styles/dashboard';
+@use 'styles/charts';
+@use 'styles/notifications';
+@use 'styles/audit';
+@use 'styles/settings';
+@use 'styles/density';
+@use 'styles/component-styles';
+@use 'styles/login';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  position: relative;
+  min-height: 100dvh;
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--app-font-sans);
+  font-size: var(--app-font-size-md);
+  line-height: var(--app-line-height-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Layered, theme-aware page depth: soft ambient fields + a faint grid that fades toward the edges.
+// Fixed and non-interactive; it never sits behind text at a contrast-reducing strength.
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+body::before {
+  background:
+    radial-gradient(60rem 40rem at 12% -12%, var(--app-ambient-1), transparent 62%),
+    radial-gradient(50rem 36rem at 105% 8%, var(--app-ambient-2), transparent 60%),
+    radial-gradient(56rem 40rem at 70% 115%, var(--app-ambient-3), transparent 62%);
+}
+
+body::after {
+  background-image:
+    linear-gradient(var(--app-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--app-grid-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 20%, #000 20%, transparent 75%);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--app-primary) 24%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// Shown inside <app-root> until Angular bootstraps (session restore runs first), so there is no
+// flash of protected or login content while auth state is unknown.
+.boot-splash {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+
+  &::after {
+    content: '';
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 2px solid var(--app-border-strong);
+    border-top-color: var(--app-primary);
+    border-radius: 50%;
+    animation: app-spin 800ms linear infinite;
+  }
+}

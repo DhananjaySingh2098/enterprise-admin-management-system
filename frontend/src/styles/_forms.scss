@@ -1,0 +1,223 @@
+// Shared form and button primitives. Token-driven, so they follow light/dark automatically.
+
+.field {
+  display: grid;
+  align-content: start;
+  gap: var(--app-space-2);
+}
+
+.field-label {
+  font-size: var(--app-font-size-sm);
+  font-weight: 500;
+  color: var(--app-text);
+}
+
+.input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 var(--app-space-3);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-soft);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.03);
+  color: var(--app-text);
+  font: inherit;
+  font-size: var(--app-font-size-sm);
+  transition:
+    border-color var(--app-transition-fast),
+    box-shadow var(--app-transition-fast),
+    background-color var(--app-transition-fast);
+
+  &::placeholder {
+    color: var(--app-text-soft);
+  }
+
+  &:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--app-primary) 38%, var(--app-border-strong));
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--app-primary);
+    background: var(--app-surface);
+    box-shadow: 0 0 0 4px var(--app-focus-ring), 0 0 18px -4px var(--app-glow);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--app-danger);
+  }
+}
+
+.input-group {
+  position: relative;
+  display: flex;
+
+  .input {
+    padding-right: 4.25rem;
+  }
+}
+
+.input-addon {
+  position: absolute;
+  top: 50%;
+  right: var(--app-space-1);
+  transform: translateY(-50%);
+  min-height: 2.25rem;
+  padding: 0 var(--app-space-3);
+  border: 0;
+  border-radius: calc(var(--app-radius-sm) - 2px);
+  background: transparent;
+  color: var(--app-text-muted);
+  font: inherit;
+  font-size: var(--app-font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--app-text);
+    background: var(--app-surface-sunken);
+  }
+}
+
+.field-error {
+  margin: 0;
+  color: var(--app-danger);
+  font-size: var(--app-font-size-xs);
+}
+
+// ---------------------------------------------------------------- button system
+// Primary (brand gradient) · Secondary (raised surface) · Ghost (text) · Danger · Icon (see _components.scss).
+// Sizes: default 2.5rem, .btn-sm 2.125rem, .btn-lg 2.875rem. All share focus, press and disabled behaviour.
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--app-space-2);
+  min-height: 2.5rem;
+  padding: 0 var(--app-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-sm);
+  font: inherit;
+  font-size: var(--app-font-size-sm);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--app-transition-fast),
+    border-color var(--app-transition-fast),
+    box-shadow var(--app-transition-fast),
+    transform var(--app-transition-fast),
+    color var(--app-transition-fast);
+
+  .icon {
+    transition: transform var(--app-transition-fast);
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--app-focus-ring);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    box-shadow: none;
+  }
+}
+
+.btn-primary {
+  background: var(--app-gradient-primary);
+  color: var(--app-on-primary);
+  box-shadow: var(--app-inner-highlight), 0 1px 2px rgb(0 0 0 / 0.08), 0 6px 16px -6px var(--app-glow);
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--app-inner-highlight), 0 1px 2px rgb(0 0 0 / 0.08), 0 10px 24px -6px var(--app-glow);
+    filter: saturate(1.08) brightness(1.04);
+  }
+}
+
+.btn-secondary {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-elevated);
+  color: var(--app-text);
+  box-shadow: var(--app-inner-highlight), var(--app-shadow-sm);
+
+  &:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--app-primary) 35%, var(--app-border-strong));
+    box-shadow: var(--app-inner-highlight), var(--app-shadow-md);
+  }
+}
+
+.btn-lg {
+  min-height: 2.875rem;
+  padding: 0 var(--app-space-5);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: app-spin 700ms linear infinite;
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--app-space-2);
+  margin-bottom: var(--app-space-5);
+  padding: var(--app-space-3);
+  border: 1px solid;
+  border-radius: var(--app-radius-sm);
+  font-size: var(--app-font-size-sm);
+
+  svg {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 1px;
+  }
+}
+
+.alert-danger {
+  border-color: color-mix(in srgb, var(--app-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--app-danger) 8%, var(--app-surface));
+  color: var(--app-danger);
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Keeps the spinner meaningful when motion is reduced: slow pulse instead of disappearing.
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-right-color: currentColor;
+    opacity: 0.6;
+  }
+}

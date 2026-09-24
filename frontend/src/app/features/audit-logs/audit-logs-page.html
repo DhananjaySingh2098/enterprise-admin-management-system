@@ -1,0 +1,181 @@
+<div class="page audit-page">
+  <app-page-header heading="Audit Logs" subtitle="An append-only record of sign-ins and administrative changes." />
+
+  <section class="card audit-card" aria-label="Audit events">
+    <div class="toolbar audit-toolbar" role="search" appReveal="60">
+      <label class="search-field">
+        <span class="visually-hidden">Search audit events</span>
+        <app-icon name="search" [size]="16" />
+        <input class="input" type="search" [formControl]="search" placeholder="Search actor, target, IP or request ID" />
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by action</span>
+        <select class="select" (change)="setFilter('action', $any($event.target).value)" aria-label="Filter by action">
+          <option value="" [selected]="!query.filters()['action']">All actions</option>
+          @for (group of actionGroups; track group.label) {
+            <optgroup [label]="group.label">
+              @for (action of group.actions; track action) {
+                <option [value]="action" [selected]="query.filters()['action'] === action">{{ actions[action].label }}</option>
+              }
+            </optgroup>
+          }
+        </select>
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by target type</span>
+        <select class="select" (change)="setFilter('entityType', $any($event.target).value)" aria-label="Filter by target type">
+          <option value="" [selected]="!query.filters()['entityType']">All targets</option>
+          @for (type of entityTypes; track type) {
+            <option [value]="type" [selected]="query.filters()['entityType'] === type">{{ entityLabel[type] }}</option>
+          }
+        </select>
+      </label>
+      <div class="pill-tabs" role="group" aria-label="Filter by outcome">
+        <button type="button" [attr.aria-pressed]="!query.filters()['outcome']" (click)="setFilter('outcome', '')">All</button>
+        @for (outcome of outcomeList; track outcome) {
+          <button type="button" [attr.aria-pressed]="query.filters()['outcome'] === outcome" (click)="setFilter('outcome', outcome)">
+            {{ outcomes[outcome].label }}
+          </button>
+        }
+      </div>
+      <div class="date-range" role="group" aria-label="Date range (UTC)">
+        <label>
+          <span class="date-range-label">From</span>
+          <input class="input" type="date" [value]="from()" [max]="to() || null" (change)="setDate('from', $any($event.target).value)" />
+        </label>
+        <label>
+          <span class="date-range-label">To</span>
+          <input class="input" type="date" [value]="to()" [min]="from() || null" (change)="setDate('to', $any($event.target).value)" />
+        </label>
+      </div>
+      @if (hasFilters()) {
+        <button type="button" class="btn btn-ghost btn-sm" (click)="clearFilters()"><app-icon name="x" [size]="14" /> Clear</button>
+      }
+    </div>
+
+    @if (logs.error(); as error) {
+      <div class="card-section"><div class="alert alert-danger" role="alert">{{ error }}</div></div>
+    }
+
+    <div class="table-wrap">
+      <table class="data-table responsive audit-table" [attr.aria-busy]="logs.loading()">
+        <caption class="visually-hidden">Audit events, newest first</caption>
+        <thead>
+          <tr>
+            <th appSortHeader="createdAt" [query]="query">Time</th>
+            <th appSortHeader="actor" [query]="query">Actor</th>
+            <th appSortHeader="action" [query]="query">Action</th>
+            <th appSortHeader="entityType" [query]="query">Target</th>
+            <th appSortHeader="outcome" [query]="query">Outcome</th>
+            <th scope="col">IP</th>
+            <th scope="col">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (logs.loading() && !logs.data()) {
+            @for (row of [1, 2, 3, 4, 5]; track row) {
+              <tr class="skeleton-row"><td colspan="7"><span class="skeleton"></span></td></tr>
+            }
+          } @else {
+            @for (entry of logs.data()?.content ?? []; track entry.id; let i = $index) {
+              <tr class="audit-row" [style.--i]="i" (click)="open(entry)">
+                <td data-label="Time" class="cell-muted audit-time">
+                  <time [attr.datetime]="entry.createdAt" [attr.title]="absolute(entry.createdAt)">{{ relative(entry.createdAt) }}</time>
+                </td>
+                <td data-label="Actor">
+                  <div class="identity">
+                    <app-avatar [name]="actorName(entry)" size="sm" />
+                    <span class="audit-actor" [class.is-anonymous]="!entry.actor.email" [attr.title]="actorName(entry)">{{ actorName(entry) }}</span>
+                  </div>
+                </td>
+                <td data-label="Action">
+                  <app-badge [tone]="actions[entry.action].tone" class="action-badge">
+                    <app-icon [name]="categoryIcon[actions[entry.action].category]" [size]="12" />
+                    {{ actions[entry.action].label }}
+                  </app-badge>
+                </td>
+                <td data-label="Target" class="audit-target">
+                  @if (entry.target; as target) {
+                    <span class="audit-target-label" [attr.title]="target.label">{{ target.label || '#' + (target.id ?? '—') }}</span>
+                    <span class="audit-target-type">{{ entityLabel[target.type] }}</span>
+                  } @else {
+                    <span class="cell-muted">—</span>
+                  }
+                </td>
+                <td data-label="Outcome">
+                  <app-badge [dot]="true" [tone]="outcomes[entry.outcome].tone">{{ outcomes[entry.outcome].label }}</app-badge>
+                </td>
+                <td data-label="IP" class="cell-mono" [attr.title]="entry.ipAddress">{{ entry.ipAddress ?? '—' }}</td>
+                <td data-label="Details" class="audit-details">
+                  <button type="button" class="audit-open" (click)="$event.stopPropagation(); open(entry)"
+                          [attr.aria-label]="'View details: ' + actions[entry.action].label + ', ' + relative(entry.createdAt)">
+                    <span>{{ summary(entry) }}</span>
+                    <app-icon name="chevron-right" [size]="14" />
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7">
+                <app-empty-state heading="No audit events found" icon="activity"
+                                 [message]="hasFilters() ? 'Nothing matches these filters. Try widening the date range or clearing filters.' : 'Sign-ins and administrative changes will appear here.'" />
+              </td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (logs.data(); as page) {
+      <div class="table-footer">
+        <app-pagination label="Audit log pagination" [page]="page.page" [size]="page.size" [total]="page.totalElements"
+                        [totalPages]="page.totalPages" (pageChange)="query.setPage($event)" (sizeChange)="query.setSize($event)" />
+      </div>
+    }
+  </section>
+</div>
+
+<app-dialog variant="drawer" [open]="selected() !== null" heading="Audit event"
+            [description]="selected() ? actions[selected()!.action].label + ' · ' + outcomes[selected()!.outcome].label : ''"
+            (closed)="selected.set(null)">
+  @if (selected(); as entry) {
+    <div class="audit-detail">
+      @if (detailError(); as error) { <div class="alert alert-danger" role="alert">{{ error }}</div> }
+      <div class="audit-detail-hero" [attr.data-outcome]="entry.outcome">
+        <span class="audit-detail-icon" aria-hidden="true"><app-icon [name]="categoryIcon[actions[entry.action].category]" [size]="20" /></span>
+        <div>
+          <app-badge [tone]="actions[entry.action].tone">{{ actions[entry.action].label }}</app-badge>
+          <app-badge [dot]="true" [tone]="outcomes[entry.outcome].tone">{{ outcomes[entry.outcome].label }}</app-badge>
+          <p><time [attr.datetime]="entry.createdAt">{{ absolute(entry.createdAt) }}</time> · {{ relative(entry.createdAt) }}</p>
+        </div>
+      </div>
+
+      <dl class="detail-list">
+        <div><dt>Who</dt><dd>{{ actorName(entry) }} @if (entry.actor.id) { <span class="cell-muted">· user #{{ entry.actor.id }}</span> }</dd></div>
+        <div><dt>Target</dt><dd>
+          @if (entry.target; as target) { {{ target.label || '—' }} <span class="cell-muted">· {{ entityLabel[target.type] }}@if (target.id) { #{{ target.id }} }</span> }
+          @else { — }
+        </dd></div>
+        <div><dt>IP address</dt><dd class="cell-mono">{{ entry.ipAddress ?? '—' }}</dd></div>
+        <div><dt>Request ID</dt><dd class="cell-mono request-id">
+          {{ entry.requestId ?? '—' }}
+          @if (entry.requestId) {
+            <button type="button" class="icon-btn" (click)="copy(entry.requestId)" aria-label="Copy request ID"><app-icon name="link" [size]="14" /></button>
+          }
+        </dd></div>
+        <div><dt>Event ID</dt><dd class="cell-mono">#{{ entry.id }}</dd></div>
+      </dl>
+
+      <h3 class="detail-heading">Details</h3>
+      @if (selectedRows().length) {
+        <dl class="detail-list is-compact">
+          @for (row of selectedRows(); track row.label) {
+            <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div>
+          }
+        </dl>
+      } @else {
+        <p class="cell-muted">No further details were recorded for this event.</p>
+      }
+      <p class="audit-note"><app-icon name="shield" [size]="14" /> Secrets are never recorded: no passwords, tokens or credentials.</p>
+    </div>
+  }
+</app-dialog>

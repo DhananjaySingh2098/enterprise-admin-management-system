@@ -1,0 +1,84 @@
+<div class="page notifications-page">
+  <app-page-header heading="Notifications" subtitle="Changes to your account, access and employee record.">
+    <button type="button" class="btn btn-secondary" (click)="markAll()" [disabled]="center.unread() === 0 || busy()">
+      <app-icon name="check" [size]="16" /> Mark all as read
+    </button>
+  </app-page-header>
+
+  <section class="card notifications-card" aria-labelledby="notifications-heading" appReveal="60">
+    <header class="notifications-toolbar">
+      <h2 id="notifications-heading" class="visually-hidden">Notification list</h2>
+      <div class="pill-tabs" role="tablist" aria-label="Show">
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'all'" (click)="setTab('all')">All</button>
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'unread'" (click)="setTab('unread')">
+          Unread @if (center.unread() > 0) { <span class="count-pill">{{ center.unread() }}</span> }
+        </button>
+      </div>
+    </header>
+
+    @if (error(); as message) {
+      <div class="card-section"><div class="alert alert-danger" role="alert">{{ message }}</div></div>
+    }
+
+    @if (loading() && !data()) {
+      <ul class="timeline" aria-busy="true" aria-label="Loading notifications">
+        @for (i of [0, 1, 2, 3]; track i) { <li class="timeline-item is-skeleton"><span class="skeleton"></span></li> }
+      </ul>
+    } @else if (items().length) {
+      <ol class="timeline" [attr.aria-busy]="loading()">
+        @for (n of items(); track n.id; let i = $index) {
+          @if (startsDay(i)) { <li class="timeline-day" aria-hidden="true">{{ dayLabel(n.createdAt) }}</li> }
+          <li class="timeline-item" [class.is-unread]="!n.read" [class.is-leaving]="leaving().has(n.id)" [style.--i]="i">
+            <span class="timeline-icon" [attr.data-tone]="style[n.type].tone" aria-hidden="true">
+              <app-icon [name]="style[n.type].icon" [size]="16" />
+            </span>
+            <div class="timeline-body">
+              <p class="timeline-title">
+                @if (!n.read) { <span class="unread-dot"><span class="visually-hidden">Unread: </span></span> }
+                {{ n.title }}
+              </p>
+              <p class="timeline-message">{{ n.message }}</p>
+              <p class="timeline-meta">
+                <time [attr.datetime]="n.createdAt" [attr.title]="absolute(n.createdAt)">{{ relative(n.createdAt) }}</time>
+                @if (link(n); as target) {
+                  <span aria-hidden="true">·</span>
+                  <a class="link-arrow" [routerLink]="target.path" [queryParams]="target.query">
+                    View <app-icon name="chevron-right" [size]="13" />
+                  </a>
+                }
+              </p>
+            </div>
+            @if (!n.read) {
+              <button type="button" class="btn btn-ghost btn-sm timeline-read" (click)="markRead(n)" [attr.aria-label]="'Mark as read: ' + n.title">
+                <app-icon name="check" [size]="14" /> Mark as read
+              </button>
+            }
+          </li>
+        }
+      </ol>
+    } @else {
+      <div class="notifications-empty">
+        <span class="empty-bell" aria-hidden="true">
+          <span class="empty-bell-ring"></span>
+          <app-icon name="bell" [size]="26" />
+        </span>
+        <h3>{{ tab() === 'unread' ? 'You are all caught up' : 'No notifications yet' }}</h3>
+        <p>{{ tab() === 'unread'
+          ? 'Nothing unread. New changes to your account or records will show up here.'
+          : 'When an administrator changes your access, or your employee record is updated, you will see it here.' }}</p>
+        @if (tab() === 'unread' && (data()?.totalElements ?? 0) === 0) {
+          <button type="button" class="btn btn-secondary btn-sm" (click)="setTab('all')">Show all notifications</button>
+        }
+      </div>
+    }
+
+    @if (data(); as page) {
+      @if (page.totalPages > 1) {
+        <div class="table-footer">
+          <app-pagination label="Notifications pagination" [page]="page.page" [size]="page.size" [total]="page.totalElements"
+                          [totalPages]="page.totalPages" (pageChange)="setPage($event)" (sizeChange)="setSize($event)" />
+        </div>
+      }
+    }
+  </section>
+</div>

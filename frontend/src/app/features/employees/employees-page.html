@@ -1,0 +1,108 @@
+<div class="page">
+  <app-page-header heading="Employees" subtitle="Browse and maintain employee records across departments.">
+    @if (canEdit()) {
+      <button type="button" class="btn btn-primary" (click)="openCreate()">
+        <app-icon name="plus" [size]="16" /> Add employee
+      </button>
+    }
+  </app-page-header>
+
+  <section class="card" aria-label="Employees">
+    <div class="toolbar" role="search">
+      <label class="search-field">
+        <span class="visually-hidden">Search employees</span>
+        <app-icon name="search" [size]="16" />
+        <input class="input" type="search" [formControl]="search" placeholder="Search name, code, email or title" />
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by department</span>
+        <select class="select" (change)="query.setFilter('departmentId', $any($event.target).value || null)">
+          <option value="">All departments</option>
+          @for (dept of departments(); track dept.id) { <option [value]="dept.id">{{ dept.name }}</option> }
+        </select>
+      </label>
+      <label>
+        <span class="visually-hidden">Filter by status</span>
+        <select class="select" (change)="query.setFilter('status', $any($event.target).value || null)">
+          <option value="">All statuses</option>
+          @for (status of statuses; track status) { <option [value]="status">{{ statusLabel[status] }}</option> }
+        </select>
+      </label>
+      <label>
+        <span class="visually-hidden">Sort by</span>
+        <select class="select" [value]="query.sort()" (change)="query.toggleSort($any($event.target).value)">
+          <option value="name">Sort: Name</option>
+          <option value="employeeCode">Sort: Code</option>
+          <option value="department">Sort: Department</option>
+          <option value="hireDate">Sort: Hire date</option>
+          <option value="status">Sort: Status</option>
+        </select>
+      </label>
+    </div>
+
+    @if (employees.error(); as error) {
+      <div class="card-section"><div class="alert alert-danger" role="alert">{{ error }}</div></div>
+    }
+
+    <div class="table-wrap">
+      <table class="data-table responsive" [attr.aria-busy]="employees.loading()">
+        <caption class="visually-hidden">Employees</caption>
+        <thead>
+          <tr>
+            <th appSortHeader="name" [query]="query">Employee</th>
+            <th appSortHeader="employeeCode" [query]="query">Code</th>
+            <th appSortHeader="department" [query]="query">Department</th>
+            <th appSortHeader="jobTitle" [query]="query">Job title</th>
+            <th appSortHeader="status" [query]="query">Status</th>
+            <th appSortHeader="hireDate" [query]="query">Hire date</th>
+            <th scope="col" class="col-actions"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (employees.loading() && !employees.data()) {
+            @for (row of [1, 2, 3, 4]; track row) {
+              <tr class="skeleton-row"><td colspan="7"><span class="skeleton"></span></td></tr>
+            }
+          } @else {
+            @for (e of employees.data()?.content ?? []; track e.id) {
+              <tr>
+                <td class="cell-primary" data-label="Employee">
+                  <div class="identity">
+                    <app-avatar [name]="fullName(e)" size="sm" />
+                    <div class="identity-text"><strong>{{ fullName(e) }}</strong><span>{{ e.email }}</span></div>
+                  </div>
+                </td>
+                <td data-label="Code" class="cell-mono">{{ e.employeeCode }}</td>
+                <td data-label="Department"><span class="dept-chip">{{ e.department.name }}</span></td>
+                <td data-label="Job title" class="cell-muted">{{ e.jobTitle }}</td>
+                <td data-label="Status"><app-badge [dot]="true" [tone]="statusTone[e.status]">{{ statusLabel[e.status] }}</app-badge></td>
+                <td data-label="Hire date" class="cell-muted">{{ e.hireDate | date: 'mediumDate' }}</td>
+                <td class="col-actions">
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="openRecord(e)"
+                          [attr.aria-label]="(canEdit() ? 'Edit ' : 'View ') + fullName(e)">
+                    <app-icon [name]="canEdit() ? 'pencil' : 'chevron-right'" [size]="15" /> {{ canEdit() ? 'Edit' : 'View' }}
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7">
+                <app-empty-state heading="No employees found" icon="briefcase"
+                                 [message]="canEdit() ? 'Adjust the filters or add the first employee.' : 'Adjust the search or filters.'" />
+              </td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (employees.data(); as page) {
+      <div class="table-footer">
+        <app-pagination label="Employees pagination" [page]="page.page" [size]="page.size" [total]="page.totalElements"
+                        [totalPages]="page.totalPages" (pageChange)="query.setPage($event)" (sizeChange)="query.setSize($event)" />
+      </div>
+    }
+  </section>
+</div>
+
+<app-employee-form [open]="formOpen()" [mode]="formMode()" [employeeId]="selectedId()" [isAdmin]="isAdmin()"
+                   (saved)="onSaved($event)" (closed)="formOpen.set(false)" />

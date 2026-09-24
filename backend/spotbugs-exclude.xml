@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reviewed SpotBugs/FindSecBugs exclusions (Phase 6). Each entry records why it is not a vulnerability here.
+  Re-run: ./mvnw -Psecurity-scan -DskipTests verify
+-->
+<FindBugsFilter>
+    <!-- Mutable-reference exposure: Spring-injected collaborators, JPA entity associations and immutable-by-contract
+         records. Request/response DTOs that carry collections copy them (List.copyOf/Set.copyOf) where it matters;
+         no untrusted code runs in-process, so this is a design-style warning, not a security issue. -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- "Finalizer attack" on constructors that throw: only relevant to classes attackers can subclass/deserialize.
+         These are container-managed Spring singletons; finalization is deprecated for removal in Java 21. -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!-- The inbound X-Request-Id is echoed only when it matches [A-Za-z0-9-]{8,64}; otherwise a UUID is generated.
+         CR/LF (response splitting) can therefore never reach the header. Covered by AuditIntegrationTest. -->
+    <Match>
+        <Class name="com.enterprise.admin.config.RequestIdFilter"/>
+        <Bug pattern="HRS_REQUEST_PARAMETER_TO_HTTP_HEADER"/>
+    </Match>
+
+    <!-- GRANT/REVOKE statements cannot use bind parameters for identifiers. Table names come from a compile-time
+         constant map, user/host are validated against [A-Za-z0-9_.%-]{0,64} at startup, and the schema name is the
+         connection's own catalog validated against [A-Za-z0-9_]+ before use. No request data is involved. -->
+    <Match>
+        <Class name="com.enterprise.admin.config.RuntimeGrants"/>
+        <Bug pattern="SQL_INJECTION_JDBC,SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE"/>
+    </Match>
+
+    <!-- The flagged log statements only interpolate numeric user ids and RoleName enum values; no user-controlled
+         strings reach the log lines (see UserAdminService). -->
+    <Match>
+        <Class name="com.enterprise.admin.service.UserAdminService"/>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+    </Match>
+</FindBugsFilter>

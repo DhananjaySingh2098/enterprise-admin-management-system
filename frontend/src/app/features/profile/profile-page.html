@@ -1,0 +1,105 @@
+<div class="page">
+  <app-page-header heading="Profile" subtitle="Your account details and security." />
+
+  @if (loadError(); as error) {
+    <div class="alert alert-danger" role="alert">{{ error }}</div>
+  }
+
+  @if (profile(); as p) {
+    <div class="profile-grid">
+      <section class="card profile-card" aria-label="Account summary">
+        <span class="profile-banner" aria-hidden="true"></span>
+        <app-avatar [name]="fullName(p)" size="lg" />
+        <h2>{{ fullName(p) }}</h2>
+        <p>{{ p.email }}</p>
+        <span class="badge-list">
+          @for (role of p.roles; track role) {
+            <app-badge [tone]="role === 'ADMIN' ? 'primary' : role === 'MANAGER' ? 'info' : 'neutral'">{{ role }}</app-badge>
+          }
+        </span>
+        <p class="profile-meta"><app-icon name="calendar" [size]="14" /> Member since {{ p.createdAt | date: 'mediumDate' }}</p>
+      </section>
+
+      <div class="stack">
+        <section class="card card-section" aria-labelledby="details-title">
+          <h2 class="section-title" id="details-title">Personal details</h2>
+          <p class="section-subtitle">Update your name and sign-in email.</p>
+          <form [formGroup]="details" (ngSubmit)="saveDetails()" novalidate>
+            @if (detailsError(); as message) { <div class="alert alert-danger" role="alert">{{ message }}</div> }
+            <div class="form-grid">
+              <div class="field">
+                <label class="field-label" for="p-first">First name</label>
+                <input id="p-first" class="input" formControlName="firstName" autocomplete="given-name"
+                       [attr.aria-invalid]="detailError('firstName')" [attr.aria-describedby]="detailError('firstName') ? 'p-first-err' : null" />
+                @if (detailError('firstName')) { <p class="field-error" id="p-first-err">First name is required.</p> }
+              </div>
+              <div class="field">
+                <label class="field-label" for="p-last">Last name</label>
+                <input id="p-last" class="input" formControlName="lastName" autocomplete="family-name"
+                       [attr.aria-invalid]="detailError('lastName')" [attr.aria-describedby]="detailError('lastName') ? 'p-last-err' : null" />
+                @if (detailError('lastName')) { <p class="field-error" id="p-last-err">Last name is required.</p> }
+              </div>
+              <div class="field span-2">
+                <label class="field-label" for="p-email">Email</label>
+                <input id="p-email" class="input" type="email" formControlName="email" autocomplete="email" spellcheck="false"
+                       [attr.aria-invalid]="detailError('email')" [attr.aria-describedby]="detailError('email') ? 'p-email-err' : null" />
+                @if (detailError('email')) {
+                  <p class="field-error" id="p-email-err">{{ details.controls.email.errors?.['server'] ?? 'Enter a valid email address.' }}</p>
+                }
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" [disabled]="savingDetails() || details.pristine">
+                @if (savingDetails()) { <span class="spinner" aria-hidden="true"></span> }
+                Save details
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card card-section" aria-labelledby="password-title">
+          <h2 class="section-title" id="password-title"><app-icon name="lock" [size]="16" /> Password</h2>
+          <p class="section-subtitle">Changing your password signs you out of all other sessions.</p>
+          <form [formGroup]="password" (ngSubmit)="changePassword()" novalidate>
+            @if (passwordError(); as message) { <div class="alert alert-danger" role="alert">{{ message }}</div> }
+            <div class="form-grid">
+              <div class="field span-2">
+                <label class="field-label" for="pw-current">Current password</label>
+                <input id="pw-current" class="input" type="password" formControlName="currentPassword" autocomplete="current-password"
+                       [attr.aria-invalid]="passwordFieldError('currentPassword')"
+                       [attr.aria-describedby]="passwordFieldError('currentPassword') ? 'pw-current-err' : null" />
+                @if (passwordFieldError('currentPassword')) {
+                  <p class="field-error" id="pw-current-err">{{ password.controls.currentPassword.errors?.['server'] ?? 'Enter your current password.' }}</p>
+                }
+              </div>
+              <div class="field">
+                <label class="field-label" for="pw-new">New password</label>
+                <input id="pw-new" class="input" type="password" formControlName="newPassword" autocomplete="new-password"
+                       [attr.aria-invalid]="passwordFieldError('newPassword')" aria-describedby="pw-new-hint" />
+                <p class="field-hint" id="pw-new-hint">At least 12 characters.</p>
+                @if (passwordFieldError('newPassword')) {
+                  <p class="field-error">{{ password.controls.newPassword.errors?.['server'] ?? 'Use 12 to 72 characters.' }}</p>
+                }
+              </div>
+              <div class="field">
+                <label class="field-label" for="pw-confirm">Confirm new password</label>
+                <input id="pw-confirm" class="input" type="password" formControlName="confirmPassword" autocomplete="new-password"
+                       [attr.aria-invalid]="passwordFieldError('confirmPassword')"
+                       [attr.aria-describedby]="passwordFieldError('confirmPassword') ? 'pw-confirm-err' : null" />
+                @if (passwordFieldError('confirmPassword')) {
+                  <p class="field-error" id="pw-confirm-err">{{ password.controls.confirmPassword.errors?.['server'] ?? 'Passwords do not match.' }}</p>
+                }
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" [disabled]="savingPassword()">
+                @if (savingPassword()) { <span class="spinner" aria-hidden="true"></span> }
+                Change password
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </div>
+  }
+</div>

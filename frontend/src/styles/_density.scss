@@ -1,0 +1,84 @@
+// Density: `data-density="compact"` on <html> (set before first paint by the boot script, then by ThemeService).
+// Compact tightens spacing only — table rows, card/panel padding and navigation. Font sizes and control heights are
+// unchanged, so text stays readable and touch targets keep their size.
+
+:root[data-density='compact'] {
+  .content {
+    padding-top: var(--app-space-4);
+    padding-inline: var(--app-space-5);
+  }
+
+  // Tables
+  .data-table th {
+    padding-block: var(--app-space-2);
+  }
+
+  .data-table td {
+    padding-block: 0.5rem;
+  }
+
+  .recent-table td {
+    padding-block: 0.375rem;
+  }
+
+  // Cards and panels
+  .card-section,
+  .settings-card {
+    padding: var(--app-space-4);
+  }
+
+  .toolbar {
+    padding: var(--app-space-3);
+  }
+
+  .dashboard {
+    gap: var(--app-space-4);
+  }
+
+  .dash-grid {
+    gap: var(--app-space-4);
+  }
+
+  .dash-panel {
+    gap: var(--app-space-3);
+    padding: var(--app-space-4);
+  }
+
+  .kpi-card {
+    padding: 0.75rem var(--app-space-4);
+  }
+
+  .dash-hero {
+    min-height: 13.5rem;
+    padding-block: var(--app-space-6);
+  }
+
+  .bar-row {
+    padding-block: 0.3125rem;
+  }
+
+  .timeline-item {
+    padding-block: var(--app-space-2);
+  }
+
+  // Navigation (the sliding pill reads the same row height)
+  .nav-link {
+    min-height: 2.375rem;
+  }
+
+  .sidebar-nav {
+    --nav-row: calc(2.375rem + 3px);
+  }
+
+  .nav-slider {
+    height: 2.375rem;
+  }
+}
+
+// Applying preferences fetched from the account swaps tokens instantly instead of animating every surface.
+.theme-syncing,
+.theme-syncing *,
+.theme-syncing *::before,
+.theme-syncing *::after {
+  transition: none !important;
+}

@@ -1,0 +1,7 @@
+# Local development profile. Imports the git-ignored .env from the project root (when started from backend/)
+# or the current directory. Real environment variables still take precedence over .env values.
+spring:
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../.env[.properties]
